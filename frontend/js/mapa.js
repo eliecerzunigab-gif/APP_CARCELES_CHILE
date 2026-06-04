@@ -74,26 +74,31 @@ function actualizarMapa() {
 
   if (STATE.recintoActual) {
     const r = STATE.recintoActual;
-    // Animación suave hacia el recinto seleccionado
+    // 1. Primero hacer zoom al recinto con animación
     map.flyTo([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO, {
       duration: 1.5,
       easeLinearity: 0.25
     });
-    if (mostrarZonas) mostrarZonasRecinto(r);
-    if (mostrarGendarmes) mostrarGendarmesRecinto(r);
-    if (mostrarDispositivos) mostrarDispositivosRecinto(r);
-    if (mostrarDrones) mostrarDronesRecinto(r);
-    if (mostrarAlertas) mostrarAlertasRecinto(r);
+    // 2. Agregar marcadores después de un breve delay para que la animación se vea
+    setTimeout(() => {
+      if (mostrarZonas) mostrarZonasRecinto(r);
+      if (mostrarGendarmes) mostrarGendarmesRecinto(r);
+      if (mostrarDispositivos) mostrarDispositivosRecinto(r);
+      if (mostrarDrones) mostrarDronesRecinto(r);
+      if (mostrarAlertas) mostrarAlertasRecinto(r);
+    }, 100);
   } else {
-    map.flyTo(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL, {
-      duration: 1.5,
-      easeLinearity: 0.25
-    });
+    // Vista nacional - mostrar todo primero, luego hacer zoom out
     if (mostrarGendarmes) mostrarGendarmesNacional();
     if (mostrarDispositivos) mostrarDispositivosNacional();
     if (mostrarDrones) mostrarDronesNacional();
     if (mostrarAlertas) mostrarAlertasNacional();
     if (mostrarZonas) mostrarRecintosNacional();
+    // Zoom out con animación
+    map.flyTo(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL, {
+      duration: 1.5,
+      easeLinearity: 0.25
+    });
   }
 }
 

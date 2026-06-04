@@ -1,0 +1,18 @@
+{
+  "name": "app-carceles-backend",
+  "version": "1.0.0",
+  "description": "Backend para sistema de monitoreo de seguridad en cárceles",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "uuid": "^9.0.0"
+  }
+}

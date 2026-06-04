@@ -1,0 +1,156 @@
+{
+  "metadata": {
+    "fuente": "Gendarmería de Chile (GENCHI)",
+    "total_recintos": 66,
+    "total_regiones": 16,
+    "actualizacion": "2026-06-03"
+  },
+  "regiones": [
+    {
+      "nombre": "Región de Arica y Parinacota",
+      "recintos": [
+        {"nombre":"CDP Arica","direccion":"Av. Santa María 2345, Arica","latitud":-18.478,"longitud":-70.321,"capacidad":600,"seguridad":"media"}
+      ]
+    },
+    {
+      "nombre": "Región de Tarapacá",
+      "recintos": [
+        {"nombre":"CDP Iquique","direccion":"Av. Arturo Prat 1234, Iquique","latitud":-20.214,"longitud":-70.152,"capacidad":800,"seguridad":"media"},
+        {"nombre":"CDP Pozo Almonte","direccion":"Av. Comercio 567, Pozo Almonte","latitud":-20.256,"longitud":-69.786,"capacidad":150,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Antofagasta",
+      "recintos": [
+        {"nombre":"CDP Antofagasta","direccion":"Av. Argentina 2345, Antofagasta","latitud":-23.651,"longitud":-70.398,"capacidad":900,"seguridad":"media"},
+        {"nombre":"CDP Calama","direccion":"Av. Granaderos 1234, Calama","latitud":-22.462,"longitud":-68.928,"capacidad":500,"seguridad":"media"},
+        {"nombre":"CDP Tocopilla","direccion":"Av. 21 de Mayo 789, Tocopilla","latitud":-22.092,"longitud":-70.198,"capacidad":200,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Atacama",
+      "recintos": [
+        {"nombre":"CDP Copiapó","direccion":"Av. Juan Martínez 1234, Copiapó","latitud":-27.367,"longitud":-70.332,"capacidad":500,"seguridad":"media"},
+        {"nombre":"CDP Vallenar","direccion":"Av. Ramírez 789, Vallenar","latitud":-28.575,"longitud":-70.759,"capacidad":250,"seguridad":"media"},
+        {"nombre":"CDP Chañaral","direccion":"Av. Merino Jarpa 456, Chañaral","latitud":-26.345,"longitud":-70.620,"capacidad":120,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Coquimbo",
+      "recintos": [
+        {"nombre":"CDP La Serena","direccion":"Av. Francisco de Aguirre 2345, La Serena","latitud":-29.903,"longitud":-71.250,"capacidad":600,"seguridad":"media"},
+        {"nombre":"CDP Coquimbo","direccion":"Av. Costanera 1234, Coquimbo","latitud":-29.953,"longitud":-71.343,"capacidad":400,"seguridad":"media"},
+        {"nombre":"CDP Ovalle","direccion":"Av. Libertad 789, Ovalle","latitud":-30.598,"longitud":-71.200,"capacidad":300,"seguridad":"media"},
+        {"nombre":"CDP Illapel","direccion":"Av. Constitución 456, Illapel","latitud":-31.633,"longitud":-71.170,"capacidad":150,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Valparaíso",
+      "recintos": [
+        {"nombre":"CDP Valparaíso","direccion":"Av. Argentina 975, Cerro Cordillera, Valparaíso","latitud":-33.047,"longitud":-71.617,"capacidad":800,"seguridad":"media"},
+        {"nombre":"CDP San Antonio","direccion":"Av. Barros Luco 2101, San Antonio","latitud":-33.593,"longitud":-71.613,"capacidad":400,"seguridad":"media"},
+        {"nombre":"CDP Viña del Mar","direccion":"Av. Libertad 1234, Viña del Mar","latitud":-33.025,"longitud":-71.552,"capacidad":350,"seguridad":"media"},
+        {"nombre":"CDP Los Andes","direccion":"Av. Argentina 456, Los Andes","latitud":-32.834,"longitud":-70.598,"capacidad":200,"seguridad":"media"},
+        {"nombre":"CDP San Felipe","direccion":"Av. Yungay 789, San Felipe","latitud":-32.750,"longitud":-70.725,"capacidad":180,"seguridad":"media"},
+        {"nombre":"CDP Quillota","direccion":"Av. Condell 567, Quillota","latitud":-32.880,"longitud":-71.248,"capacidad":250,"seguridad":"media"},
+        {"nombre":"CDP Quilpué","direccion":"Av. Blanco Encalada 890, Quilpué","latitud":-33.048,"longitud":-71.442,"capacidad":200,"seguridad":"media"},
+        {"nombre":"CDP La Ligua","direccion":"Av. Prat 456, La Ligua","latitud":-32.452,"longitud":-71.231,"capacidad":120,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región Metropolitana",
+      "recintos": [
+        {"nombre":"CDP Santiago Sur (Ex Penitenciaría de Santiago)","direccion":"Av. Pedro Montt 1600, Santiago Centro","latitud":-33.456,"longitud":-70.648,"capacidad":5000,"seguridad":"alta"},
+        {"nombre":"CCP Colina I","direccion":"Ruta 5 Norte, Km 25, Colina","latitud":-33.202,"longitud":-70.675,"capacidad":1500,"seguridad":"alta"},
+        {"nombre":"CCP Colina II","direccion":"Ruta 5 Norte, Km 28, Colina","latitud":-33.185,"longitud":-70.680,"capacidad":1200,"seguridad":"alta"},
+        {"nombre":"CDP San Bernardo","direccion":"Av. Colón 1234, San Bernardo","latitud":-33.592,"longitud":-70.700,"capacidad":600,"seguridad":"media"},
+        {"nombre":"CDP Puente Alto","direccion":"Av. Concha y Toro 2345, Puente Alto","latitud":-33.613,"longitud":-70.575,"capacidad":500,"seguridad":"media"},
+        {"nombre":"CDP Talagante","direccion":"Av. Balmaceda 890, Talagante","latitud":-33.664,"longitud":-70.930,"capacidad":300,"seguridad":"media"},
+        {"nombre":"CDP Melipilla","direccion":"Av. Vicuña Mackenna 567, Melipilla","latitud":-33.686,"longitud":-71.215,"capacidad":250,"seguridad":"media"}
+      ]
+    },
+    {
+      "nombre": "Región del Libertador General Bernardo O'Higgins",
+      "recintos": [
+        {"nombre":"CDP Rancagua","direccion":"Av. Libertador O'Higgins 1234, Rancagua","latitud":-34.170,"longitud":-70.745,"capacidad":700,"seguridad":"media"},
+        {"nombre":"CDP San Fernando","direccion":"Av. Manuel Rodríguez 789, San Fernando","latitud":-34.585,"longitud":-70.988,"capacidad":350,"seguridad":"media"},
+        {"nombre":"CDP Santa Cruz","direccion":"Av. Errázuriz 456, Santa Cruz","latitud":-34.638,"longitud":-71.365,"capacidad":200,"seguridad":"media"},
+        {"nombre":"CDP Rengo","direccion":"Av. Caupolicán 567, Rengo","latitud":-34.410,"longitud":-70.860,"capacidad":180,"seguridad":"baja"},
+        {"nombre":"CDP Pichilemu","direccion":"Av. Agustín Urrutia 234, Pichilemu","latitud":-34.387,"longitud":-72.005,"capacidad":100,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región del Maule",
+      "recintos": [
+        {"nombre":"CDP Talca","direccion":"Av. 2 Sur 1234, Talca","latitud":-35.427,"longitud":-71.655,"capacidad":800,"seguridad":"media"},
+        {"nombre":"CDP Curicó","direccion":"Av. Alessandri 789, Curicó","latitud":-34.983,"longitud":-71.239,"capacidad":500,"seguridad":"media"},
+        {"nombre":"CDP Linares","direccion":"Av. Independencia 567, Linares","latitud":-35.847,"longitud":-71.593,"capacidad":400,"seguridad":"media"},
+        {"nombre":"CDP Constitución","direccion":"Av. Costanera 345, Constitución","latitud":-35.333,"longitud":-72.417,"capacidad":150,"seguridad":"baja"},
+        {"nombre":"CDP Cauquenes","direccion":"Av. San Martín 456, Cauquenes","latitud":-35.967,"longitud":-72.317,"capacidad":200,"seguridad":"media"},
+        {"nombre":"CDP Parral","direccion":"Av. Ignacio Carrera Pinto 234, Parral","latitud":-36.140,"longitud":-71.830,"capacidad":150,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Ñuble",
+      "recintos": [
+        {"nombre":"CDP Chillán","direccion":"Av. O'Higgins 1234, Chillán","latitud":-36.607,"longitud":-72.103,"capacidad":600,"seguridad":"media"},
+        {"nombre":"CDP San Carlos","direccion":"Av. Libertad 567, San Carlos","latitud":-36.425,"longitud":-71.958,"capacidad":200,"seguridad":"media"}
+      ]
+    },
+    {
+      "nombre": "Región del Biobío",
+      "recintos": [
+        {"nombre":"CDP Concepción (El Manzano)","direccion":"Camino a Penco s/n, Concepción","latitud":-36.827,"longitud":-73.050,"capacidad":1200,"seguridad":"alta"},
+        {"nombre":"CCP Biobío","direccion":"Ruta 160, Km 12, San Pedro de la Paz","latitud":-36.840,"longitud":-73.100,"capacidad":800,"seguridad":"alta"},
+        {"nombre":"CDP Talcahuano","direccion":"Av. Colón 1234, Talcahuano","latitud":-36.724,"longitud":-73.117,"capacidad":400,"seguridad":"media"},
+        {"nombre":"CDP Los Ángeles","direccion":"Av. Alemania 789, Los Ángeles","latitud":-37.470,"longitud":-72.350,"capacidad":500,"seguridad":"media"},
+        {"nombre":"CDP Lebu","direccion":"Av. Matta 456, Lebu","latitud":-37.608,"longitud":-73.653,"capacidad":120,"seguridad":"baja"},
+        {"nombre":"CDP Arauco","direccion":"Av. Caupolicán 234, Arauco","latitud":-37.246,"longitud":-73.317,"capacidad":150,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de La Araucanía",
+      "recintos": [
+        {"nombre":"CDP Temuco","direccion":"Av. Alemania 567, Temuco","latitud":-38.735,"longitud":-72.590,"capacidad":700,"seguridad":"media"},
+        {"nombre":"CDP Angol","direccion":"Av. O'Higgins 890, Angol","latitud":-37.800,"longitud":-72.710,"capacidad":300,"seguridad":"media"},
+        {"nombre":"CDP Villarrica","direccion":"Av. Pedro de Valdivia 456, Villarrica","latitud":-39.280,"longitud":-72.227,"capacidad":150,"seguridad":"baja"},
+        {"nombre":"CDP Lautaro","direccion":"Av. Manuel Rodríguez 234, Lautaro","latitud":-38.530,"longitud":-72.435,"capacidad":120,"seguridad":"baja"},
+        {"nombre":"CDP Nueva Imperial","direccion":"Av. Prat 345, Nueva Imperial","latitud":-38.745,"longitud":-72.950,"capacidad":100,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Los Ríos",
+      "recintos": [
+        {"nombre":"CDP Valdivia","direccion":"Av. España 1234, Valdivia","latitud":-39.814,"longitud":-73.246,"capacidad":500,"seguridad":"media"},
+        {"nombre":"CDP La Unión","direccion":"Av. Ramírez 789, La Unión","latitud":-40.293,"longitud":-73.082,"capacidad":120,"seguridad":"baja"},
+        {"nombre":"CDP Río Bueno","direccion":"Av. Balmaceda 234, Río Bueno","latitud":-40.335,"longitud":-72.955,"capacidad":100,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Los Lagos",
+      "recintos": [
+        {"nombre":"CDP Puerto Montt","direccion":"Av. Diego Portales 1234, Puerto Montt","latitud":-41.472,"longitud":-72.939,"capacidad":600,"seguridad":"media"},
+        {"nombre":"CDP Osorno","direccion":"Av. Mackenna 789, Osorno","latitud":-40.573,"longitud":-73.133,"capacidad":500,"seguridad":"media"},
+        {"nombre":"CDP Castro","direccion":"Av. Pedro Montt 456, Castro","latitud":-42.482,"longitud":-73.764,"capacidad":250,"seguridad":"media"},
+        {"nombre":"CDP Ancud","direccion":"Av. Libertad 345, Ancud","latitud":-41.869,"longitud":-73.820,"capacidad":150,"seguridad":"baja"},
+        {"nombre":"CDP Puerto Varas","direccion":"Av. Gramado 234, Puerto Varas","latitud":-41.318,"longitud":-72.985,"capacidad":120,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Aysén del General Carlos Ibáñez del Campo",
+      "recintos": [
+        {"nombre":"CDP Coyhaique","direccion":"Av. Ogana 1234, Coyhaique","latitud":-45.571,"longitud":-72.068,"capacidad":300,"seguridad":"media"},
+        {"nombre":"CDP Puerto Aysén","direccion":"Av. Eusebio Lillo 456, Puerto Aysén","latitud":-45.403,"longitud":-72.692,"capacidad":120,"seguridad":"baja"},
+        {"nombre":"CDP Chile Chico","direccion":"Av. Bernardo O'Higgins 234, Chile Chico","latitud":-46.541,"longitud":-71.724,"capacidad":80,"seguridad":"baja"}
+      ]
+    },
+    {
+      "nombre": "Región de Magallanes y de la Antártica Chilena",
+      "recintos": [
+        {"nombre":"CDP Punta Arenas","direccion":"Av. Colón 1234, Punta Arenas","latitud":-53.163,"longitud":-70.911,"capacidad":400,"seguridad":"media"},
+        {"nombre":"CDP Puerto Natales","direccion":"Av. Pedro Montt 456, Puerto Natales","latitud":-51.726,"longitud":-72.506,"capacidad":120,"seguridad":"baja"},
+        {"nombre":"CDP Porvenir","direccion":"Av. Croacia 234, Porvenir","latitud":-53.296,"longitud":-70.366,"capacidad":80,"seguridad":"baja"}
+      ]
+    }
+  ]
+}

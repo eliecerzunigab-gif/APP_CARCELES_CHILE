@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔒 SISGEN - Sistema de Gestión de Seguridad Penitenciaria | Gendarmería de Chile</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
+</head>
+<body>
+  <!-- Barra Superior -->
+  <header class="top-bar">
+    <div class="logo">
+      <span class="logo-icon">🇨🇱</span>
+      <div class="logo-text">
+        <h1>SISGEN</h1>
+        <span class="subtitle">Sistema de Gestión de Seguridad Penitenciaria · Gendarmería de Chile</span>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item" id="stat-recinto">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Recintos</span>
+      </div>
+      <div class="stat-item" id="stat-gendarmes">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Gendarmes</span>
+      </div>
+      <div class="stat-item" id="stat-dispositivos">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Celulares</span>
+      </div>
+      <div class="stat-item" id="stat-alertas">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Alertas</span>
+      </div>
+      <div class="stat-item" id="stat-drones">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Drones</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="connection-status" id="connection-status">● Conectando...</span>
+      <button class="btn-icon" onclick="window.location.reload()" title="Recargar">🔄</button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <div class="main-container">
+    <!-- Panel Lateral Izquierdo -->
+    <aside class="sidebar-left">
+      <!-- Panel de Gendarmes -->
+      <div class="panel panel-gendarmes">
+        <div class="panel-header">
+          <h3>👮 Gendarmes en Línea</h3>
+          <span class="badge" id="gendarmes-count">0</span>
+        </div>
+        <div class="panel-body" id="gendarmes-list">
+          <div class="loading">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- Panel de Dispositivos Detectados -->
+      <div class="panel panel-dispositivos">
+        <div class="panel-header">
+          <h3>📱 Celulares Detectados</h3>
+          <span class="badge badge-danger" id="dispositivos-count">0</span>
+        </div>
+        <div class="panel-body" id="dispositivos-list">
+          <div class="loading">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- Panel de Drones -->
+      <div class="panel panel-drones">
+        <div class="panel-header">
+          <h3>🚁 Drones</h3>
+          <span class="badge badge-info" id="drones-count">0</span>
+        </div>
+        <div class="panel-body" id="drones-list">
+          <div class="loading">Cargando...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mapa Central -->
+    <main class="map-container">
+      <div class="map-toolbar">
+        <div class="toolbar-left">
+          <button id="btn-vista-nacional" class="btn-back" style="display:none;" title="Volver a vista nacional">
+            ← Volver
+          </button>
+          <select id="recinto-select" class="form-select">
+            <option value="">🇨🇱 Todos los recintos</option>
+          </select>
+          <span id="vista-indicator" class="vista-indicator nacional">🇨🇱 Vista Nacional - Todos los recintos</span>
+        </div>
+        <div class="toolbar-right">
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-gendarmes" checked>
+            <span>👮 Gendarmes</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-dispositivos" checked>
+            <span>📱 Celulares</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-drones" checked>
+            <span>🚁 Drones</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-alertas" checked>
+            <span>🔔 Alertas</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-zonas" checked>
+            <span>🏘️ Zonas</span>
+          </label>
+        </div>
+      </div>
+      <div id="map"></div>
+    </main>
+
+    <!-- Panel Lateral Derecho -->
+    <aside class="sidebar-right">
+      <!-- Panel de Alertas -->
+      <div class="panel panel-alertas">
+        <div class="panel-header">
+          <h3>🔔 Alertas Activas</h3>
+          <span class="badge badge-danger" id="alertas-count">0</span>
+        </div>
+        <div class="panel-body" id="alertas-list">
+          <div class="loading">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- Panel de Estadísticas Rápidas -->
+      <div class="panel panel-stats">
+        <div class="panel-header">
+          <h3>📊 Estadísticas</h3>
+        </div>
+        <div class="panel-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-number" id="stat-gendarmes-activos">0</div>
+              <div class="stat-desc">Gendarmes Activos</div>
+            </div>
+            <div class="stat-card stat-warning">
+              <div class="stat-number" id="stat-gendarmes-inactivos">0</div>
+              <div class="stat-desc">Sin Señal</div>
+            </div>
+            <div class="stat-card stat-danger">
+              <div class="stat-number" id="stat-dispositivos-no-autorizados">0</div>
+              <div class="stat-desc">Celulares No Autorizados</div>
+            </div>
+            <div class="stat-card stat-info">
+              <div class="stat-number" id="stat-drones-vuelo">0</div>
+              <div class="stat-desc">Drones en Vuelo</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Control de Drones -->
+      <div class="panel panel-dron-control">
+        <div class="panel-header">
+          <h3>🎮 Control de Drones</h3>
+        </div>
+        <div class="panel-body" id="dron-control-panel">
+          <div class="dron-selector">
+            <select id="dron-select" class="form-select">
+              <option value="">Seleccionar dron...</option>
+            </select>
+          </div>
+          <div class="dron-info" id="dron-info">
+            <div class="dron-info-row"><span>Estado:</span> <span id="dron-estado">-</span></div>
+            <div class="dron-info-row"><span>Batería:</span> <span id="dron-bateria">-</span></div>
+            <div class="dron-info-row"><span>Altitud:</span> <span id="dron-altitud">-</span></div>
+            <div class="dron-info-row"><span>Velocidad:</span> <span id="dron-velocidad">-</span></div>
+          </div>
+          <div class="dron-buttons">
+            <button class="btn-dron btn-despegar" onclick="comandoDron('despegar')" disabled>🛫 Despegar</button>
+            <button class="btn-dron btn-aterrizar" onclick="comandoDron('aterrizar')" disabled>🛬 Aterrizar</button>
+            <button class="btn-dron btn-patrulla" onclick="comandoDron('iniciar_patrulla')" disabled>🔄 Patrullar</button>
+            <button class="btn-dron btn-regresar" onclick="comandoDron('regresar_base')" disabled>🏠 Regresar</button>
+            <button class="btn-dron btn-camara" onclick="comandoDron('activar_camara')" disabled>📷 Cámara</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modal de Alerta -->
+  <div id="alerta-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-titulo">Alerta</h3>
+        <button class="btn-close" onclick="cerrarModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+        <button class="btn btn-primary" onclick="resolverAlerta()">✅ Resolver Alerta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notificación Toast -->
+  <div id="toast-container"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/mapa.js"></script>
+  <script src="js/paneles.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

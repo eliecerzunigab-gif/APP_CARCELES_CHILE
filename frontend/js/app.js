@@ -185,6 +185,21 @@ function actualizarHeaderStats() {
   document.getElementById('stat-drones').querySelector('.stat-value').textContent = STATE.drones.length;
 }
 
+function llenarSelectDrones() {
+  const select = document.getElementById('dron-select');
+  if (!select) return;
+  const actual = select.value;
+  select.innerHTML = '<option value="">Seleccionar dron...</option>';
+  STATE.drones.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    const icono = d.estado === 'en_vuelo' || d.estado === 'patrullando' ? '🛸' : '🚁';
+    opt.textContent = `${icono} ${d.nombre} - ${d.recinto_nombre}`;
+    select.appendChild(opt);
+  });
+  if (actual) select.value = actual;
+}
+
 // ========== SELECT RECINTOS ==========
 function llenarSelectRecintos() {
   const select = document.getElementById('recinto-select');
@@ -347,9 +362,57 @@ function actualizarControlDron() {
 }
 
 function comandoDron(comando) {
-  if (!STATE.dronSeleccionado) return;
-  fetchAPI(`/api/drones/${STATE.dronSeleccionado.id}/${comando}`, { method: 'POST' });
-  mostrarToast(`🚁 Comando: ${comando}`, 'info');
+  if (!STATE.dronSeleccionado) {
+    mostrarToast('⚠️ Selecciona un dron primero', 'warning');
+    return;
+  }
+  const dron = STATE.dronSeleccionado;
+  
+  // Simular comando localmente
+  switch(comando) {
+    case 'despegar':
+      if (dron.estado === 'en_tierra') {
+        dron.estado = 'en_vuelo';
+        dron.altitud = 20;
+        dron.velocidad = 5;
+        mostrarToast(`🚁 ${dron.nombre} despegando...`, 'success');
+      }
+      break;
+    case 'aterrizar':
+      if (dron.estado !== 'en_tierra') {
+        dron.estado = 'en_tierra';
+        dron.altitud = 0;
+        dron.velocidad = 0;
+        mostrarToast(`🛬 ${dron.nombre} aterrizando...`, 'info');
+      }
+      break;
+    case 'iniciar_patrulla':
+      if (dron.estado !== 'en_tierra') {
+        dron.estado = 'patrullando';
+        dron.velocidad = 8;
+        mostrarToast(`🔄 ${dron.nombre} iniciando patrulla...`, 'info');
+      }
+      break;
+    case 'regresar_base':
+      if (dron.estado !== 'en_tierra') {
+        dron.estado = 'en_vuelo';
+        dron.velocidad = 12;
+        // Volver al centro del recinto
+        const recinto = STATE.recintos.find(r => r.id == dron.recinto_id);
+        if (recinto) {
+          dron.latitud = recinto.latitud;
+          dron.longitud = recinto.longitud;
+        }
+        mostrarToast(`🏠 ${dron.nombre} regresando a base...`, 'info');
+      }
+      break;
+    case 'activar_camara':
+      mostrarToast(`📷 Cámara de ${dron.nombre} activada`, 'info');
+      break;
+  }
+  actualizarControlDron();
+  actualizarDrones();
+  actualizarMapa();
 }
 
 function lanzarDronEmergencia() {
@@ -357,8 +420,29 @@ function lanzarDronEmergencia() {
     mostrarToast('⚠️ Selecciona un recinto primero', 'warning');
     return;
   }
-  fetchAPI(`/api/drones/lanzar/${STATE.recintoActual.id}`, { method: 'POST' });
-  mostrarToast('🚀 Dron lanzado en emergencia', 'success');
+  // Crear un nuevo dron en el recinto actual
+  const recinto = STATE.recintoActual;
+  const numDrones = STATE.drones.filter(d => d.recinto_id == recinto.id).length;
+  const nuevoDron = {
+    id: `dr_emergencia_${Date.now()}`,
+    nombre: `Emergencia-${numDrones + 1}`,
+    recinto_id: recinto.id,
+    recinto_nombre: recinto.nombre,
+    estado: 'en_vuelo',
+    latitud: recinto.latitud + (Math.random() - 0.5) * 0.002,
+    longitud: recinto.longitud + (Math.random() - 0.5) * 0.002,
+    altitud: 30,
+    velocidad: 10,
+    bateria: 100,
+    modelo: 'DJI Matrice 30T',
+    activo: true
+  };
+  STATE.drones.push(nuevoDron);
+  mostrarToast(`🚀 Dron de emergencia lanzado en ${recinto.nombre}`, 'success');
+  actualizarDrones();
+  actualizarMapa();
+  actualizarHeaderStats();
+  llenarSelectDrones();
 }
 
 // ========== MOBILE ==========
@@ -402,65 +486,175 @@ function toggleMobilePanel(tipo) {
 }
 
 // ========== DATOS SIMULADOS (GitHub Pages) ==========
+// Simulación en tiempo real con movimiento realista
 function cargarDatosSimulados() {
   STATE.recintos = DATOS_SIMULADOS.recintos;
   STATE.gendarmes = DATOS_SIMULADOS.gendarmes;
   STATE.dispositivos = DATOS_SIMULADOS.dispositivos;
   STATE.drones = DATOS_SIMULADOS.drones;
   STATE.alertas = DATOS_SIMULADOS.alertas;
+  STATE.zonas = DATOS_SIMULADOS.zonas || [];
   actualizarTodo();
+  llenarSelectDrones();
   console.log('✅ Datos simulados cargados');
 
-  // Simular movimiento de gendarmes cada 5s
+  // ===== SIMULACIÓN DE GENDARMES (cada 4s) =====
+  // Movimiento con destino: cada gendarme se mueve hacia un punto dentro de su recinto
   setInterval(() => {
     STATE.gendarmes.forEach(g => {
-      g.latitud += (Math.random() - 0.5) * 0.0005;
-      g.longitud += (Math.random() - 0.5) * 0.0005;
+      if (g.estado !== 'activo') return;
+      
+      // Si no tiene destino o llegó, asignar nuevo destino aleatorio dentro del recinto
+      if (!g._destino_lat || !g._destino_lng || 
+          (Math.abs(g.latitud - g._destino_lat) < 0.0001 && 
+           Math.abs(g.longitud - g._destino_lng) < 0.0001)) {
+        const recinto = STATE.recintos.find(r => r.id == g.recinto_id);
+        if (recinto) {
+          g._destino_lat = recinto.latitud + (Math.random() - 0.5) * 0.004;
+          g._destino_lng = recinto.longitud + (Math.random() - 0.5) * 0.004;
+        }
+      }
+      
+      // Moverse hacia el destino
+      if (g._destino_lat && g._destino_lng) {
+        const dx = g._destino_lat - g.latitud;
+        const dy = g._destino_lng - g.longitud;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0.0001) {
+          const velocidad = 0.00015 + Math.random() * 0.0001;
+          g.latitud += (dx / dist) * velocidad;
+          g.longitud += (dy / dist) * velocidad;
+        }
+      }
+      
+      // Variar batería ligeramente
+      g.bateria = Math.max(10, Math.min(100, g.bateria + (Math.random() - 0.5) * 2));
     });
     actualizarGendarmes();
     actualizarMapa();
-  }, 5000);
+  }, 4000);
 
-  // Simular movimiento de drones cada 3s
+  // ===== SIMULACIÓN DE DRONES (cada 2.5s) =====
+  // Drones en patrulla vuelan en círculo alrededor del recinto
   setInterval(() => {
     STATE.drones.forEach(d => {
-      if (d.estado === 'en_vuelo' || d.estado === 'patrullando') {
-        d.latitud += (Math.random() - 0.5) * 0.001;
-        d.longitud += (Math.random() - 0.5) * 0.001;
-        d.bateria = Math.max(0, d.bateria - Math.random() * 0.3);
+      if (d.estado === 'en_tierra') return;
+      
+      const recinto = STATE.recintos.find(r => r.id == d.recinto_id);
+      if (!recinto) return;
+      
+      if (d.estado === 'patrullando') {
+        // Vuelo circular alrededor del recinto
+        d._patrulla_angulo = (d._patrulla_angulo || 0) + 0.05;
+        const radio = 0.003;
+        d.latitud = recinto.latitud + Math.sin(d._patrulla_angulo) * radio;
+        d.longitud = recinto.longitud + Math.cos(d._patrulla_angulo) * radio;
+        d.altitud = 25 + Math.sin(d._patrulla_angulo * 2) * 10;
+        d.velocidad = 6 + Math.sin(d._patrulla_angulo * 3) * 2;
+      } else if (d.estado === 'en_vuelo') {
+        // Vuelo libre - movimiento aleatorio suave
+        d.latitud += (Math.random() - 0.5) * 0.0008;
+        d.longitud += (Math.random() - 0.5) * 0.0008;
+        d.altitud = Math.max(5, d.altitud + (Math.random() - 0.5) * 5);
+        d.velocidad = 4 + Math.random() * 4;
+      }
+      
+      // Consumo de batería
+      d.bateria = Math.max(0, d.bateria - 0.1 - Math.random() * 0.2);
+      
+      // Si batería baja, aterrizar automáticamente
+      if (d.bateria < 5 && d.estado !== 'en_tierra') {
+        d.estado = 'en_tierra';
+        d.altitud = 0;
+        d.velocidad = 0;
+        mostrarToast(`🪫 ${d.nombre} aterrizó por batería baja`, 'warning');
       }
     });
     actualizarDrones();
     actualizarMapa();
-  }, 3000);
+    actualizarControlDron();
+  }, 2500);
 
-  // Simular nuevas alertas cada 30s
+  // ===== SIMULACIÓN DE DISPOSITIVOS (cada 8s) =====
+  // Dispositivos se mueven y cambian señal, algunos se detectan como nuevos
   setInterval(() => {
-    const tipos = ['📱 Celular no autorizado', '⚠️ Movimiento sospechoso', '🔴 Intento de fuga'];
+    STATE.dispositivos.forEach(d => {
+      if (!d.activo) return;
+      // Movimiento suave
+      d.latitud += (Math.random() - 0.5) * 0.0003;
+      d.longitud += (Math.random() - 0.5) * 0.0003;
+      // Variar señal
+      d.senial_db = Math.max(-100, Math.min(-40, d.senial_db + (Math.random() - 0.5) * 5));
+      d.intensidad_senal = Math.min(100, Math.max(10, (d.senial_db + 90) * 2.5));
+      d.ultima_deteccion = new Date().toISOString();
+    });
+    actualizarDispositivos();
+    actualizarMapa();
+  }, 8000);
+
+  // ===== NUEVAS ALERTAS CADA 20-40s =====
+  // Simula detección de celulares no autorizados con ubicación exacta
+  function generarNuevaAlerta() {
     const recinto = STATE.recintos[Math.floor(Math.random() * STATE.recintos.length)];
+    const zonas = STATE.zonas ? STATE.zonas.filter(z => z.recinto_id === recinto.id) : [];
+    const zona = zonas.length > 0 ? zonas[Math.floor(Math.random() * zonas.length)] : null;
+    
+    const tiposAlerta = [
+      { tipo: '📱 Celular no autorizado', nivel: 'alta', prob: 0.4 },
+      { tipo: '⚠️ Movimiento sospechoso', nivel: 'media', prob: 0.25 },
+      { tipo: '🔴 Intento de fuga', nivel: 'alta', prob: 0.1 },
+      { tipo: '🔊 Ruido excesivo', nivel: 'baja', prob: 0.15 },
+      { tipo: '🚪 Puerta de seguridad abierta', nivel: 'alta', prob: 0.1 }
+    ];
+    
+    // Elegir tipo basado en probabilidad
+    let r = Math.random();
+    let tipoElegido = tiposAlerta[0];
+    for (const t of tiposAlerta) {
+      if (r < t.prob) { tipoElegido = t; break; }
+      r -= t.prob;
+    }
+    
+    const lat = zona ? zona.latitud + (Math.random() - 0.5) * 0.0005 : recinto.latitud + (Math.random() - 0.5) * 0.002;
+    const lng = zona ? zona.longitud + (Math.random() - 0.5) * 0.0005 : recinto.longitud + (Math.random() - 0.5) * 0.002;
+    
     const nuevaAlerta = {
-      id: Date.now(),
+      id: `al_sim_${Date.now()}`,
       recinto_id: recinto.id,
       recinto_nombre: recinto.nombre,
-      tipo: tipos[Math.floor(Math.random() * tipos.length)],
-      nivel: Math.random() > 0.6 ? 'alta' : 'media',
-      descripcion: `Evento detectado en ${recinto.nombre}`,
-      zona: `Zona ${String.fromCharCode(65 + Math.floor(Math.random() * 5))}`,
-      latitud: recinto.latitud + (Math.random() - 0.5) * 0.002,
-      longitud: recinto.longitud + (Math.random() - 0.5) * 0.002,
+      tipo: tipoElegido.tipo,
+      nivel: tipoElegido.nivel,
+      severidad: tipoElegido.nivel === 'alta' ? 'critica' : tipoElegido.nivel,
+      descripcion: `${tipoElegido.tipo} detectado en ${zona ? zona.nombre : recinto.nombre}`,
+      zona: zona ? zona.codigo : '?',
+      zona_nombre: zona ? zona.nombre : recinto.nombre,
+      latitud: lat,
+      longitud: lng,
       fecha: new Date().toISOString(),
       resuelta: false
     };
+    
     STATE.alertas.unshift(nuevaAlerta);
-    if (STATE.alertas.length > 100) STATE.alertas.pop();
+    if (STATE.alertas.length > 150) STATE.alertas.pop();
+    
     mostrarAlertaToast(nuevaAlerta);
     actualizarAlertas();
     actualizarHeaderStats();
     actualizarDashboard();
-    if (STATE.sonidoActivo && nuevaAlerta.nivel === 'alta') {
+    
+    if (STATE.sonidoActivo && tipoElegido.nivel === 'alta') {
       reproducirAlertaSonido();
     }
-  }, 30000);
+  }
+
+  // Primera alerta a los 10s, luego cada 20-40s
+  setTimeout(generarNuevaAlerta, 10000);
+  setInterval(generarNuevaAlerta, 20000 + Math.random() * 20000);
+
+  // ===== ACTUALIZAR SELECT DE DRONES CADA 5s =====
+  setInterval(() => {
+    llenarSelectDrones();
+  }, 5000);
 }
 
 // ========== EXPORTAR FUNCIONES GLOBALES ==========

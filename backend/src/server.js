@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const { getDatabase } = require('./models/database');
 const recintosRoutes = require('./routes/recintos');
@@ -27,8 +28,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
 
-// Inicializar base de datos
-getDatabase();
+// Inicializar base de datos y sembrar datos si está vacía
+const db = getDatabase();
+const recintoCount = db.prepare('SELECT COUNT(*) as count FROM recintos').get();
+if (recintoCount.count === 0) {
+  console.log('🌱 Base de datos vacía, ejecutando seed...');
+  require('./seed_completo');
+} else {
+  console.log(`✅ Base de datos con ${recintoCount.count} recintos existentes`);
+}
 
 // Rutas API
 app.use('/api/recintos', recintosRoutes);

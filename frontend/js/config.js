@@ -1,173 +1,53 @@
-// ===== CONFIGURACIÓN =====
+// ============================================
+// SISGEN - Configuración Global
+// ============================================
+
 const CONFIG = {
-  API_URL: window.location.origin + '/api',
-  WS_URL: window.location.origin,
-  RECINTO_DEFAULT: null, // null = todos
-  REFRESH_INTERVAL: 15000, // 15 segundos
-  // Vista Nacional de Chile
-  MAP_CENTER: [-33.4489, -70.6693], // Santiago centro
-  MAP_ZOOM: 6, // Zoom para ver todo Chile
-  MAP_ZOOM_RECINTO: 16, // Zoom al seleccionar un recinto
-  MAP_MAX_ZOOM: 19,
-  MAP_MIN_ZOOM: 5,
-  GENDARME_INACTIVO_MINUTOS: 5,
-  // Límites de Chile continental
-  CHILE_BOUNDS: {
-    north: -17.5,
-    south: -56.0,
-    west: -76.0,
-    east: -66.0
+  // API URL - auto detecta si está en producción o desarrollo
+  get API_URL() {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3000';
+    }
+    // En producción (GitHub Pages, etc.), asume que el backend está en Render
+    return 'https://app-carceles-chile.onrender.com';
+  },
+
+  // Socket URL
+  get SOCKET_URL() {
+    return this.API_URL;
+  },
+
+  // Intervalos de actualización (ms)
+  REFRESH_INTERVAL: 5000,
+  SIMULATION_INTERVAL: 3000,
+
+  // Colores del mapa
+  COLORS: {
+    GENDARME_ACTIVO: '#22c55e',
+    GENDARME_INACTIVO: '#ef4444',
+    DISPOSITIVO: '#f97316',
+    DISPOSITIVO_PELIGRO: '#ef4444',
+    DRON_VUELO: '#3b82f6',
+    DRON_TIERRA: '#6b7280',
+    ALERTA_ALTA: '#ef4444',
+    ALERTA_MEDIA: '#eab308',
+    ALERTA_BAJA: '#3b82f6',
+    RECINTO: '#1e40af',
+    ZONA_SEGURA: '#22c55e',
+    ZONA_RIESGO: '#ef4444',
+    HEATMAP: ['rgba(59,130,246,0)', '#3b82f6', '#eab308', '#f97316', '#ef4444']
+  },
+
+  // Centro de Chile
+  CENTRO_CHILE: [-33.4489, -70.6693],
+  ZOOM_NACIONAL: 6,
+  ZOOM_RECINTO: 16,
+
+  // Límites de Chile
+  BOUNDS_CHILE: {
+    norte: [-17.5, -70],
+    sur: [-56, -66],
+    oeste: [-76, -80],
+    este: [-34, -66]
   }
 };
-
-// ===== ESTADO GLOBAL =====
-const STATE = {
-  socket: null,
-  recintos: [],
-  zonas: [],
-  gendarmes: [],
-  dispositivos: [],
-  drones: [],
-  alertas: [],
-  markers: {
-    gendarmes: {},
-    dispositivos: {},
-    drones: {},
-    alertas: {},
-    zonas: {},
-    recintos: {}
-  },
-  layers: {
-    gendarmes: null,
-    dispositivos: null,
-    drones: null,
-    alertas: null,
-    zonas: null,
-    recintos: null,
-    recintoPoligonos: null
-  },
-  map: null,
-  currentAlertaId: null,
-  dronSeleccionado: null,
-  vistaActual: 'nacional', // 'nacional' | 'recinto'
-  recintoActivo: null
-};
-
-// ===== UTILIDADES =====
-function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = Math.floor((now - d) / 1000);
-  
-  if (diff < 60) return 'Ahora';
-  if (diff < 3600) return `${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
-
-function getSeveridadClass(severidad) {
-  const map = { critica: 'critica', alta: 'alta', media: 'media', baja: 'baja' };
-  return map[severidad] || 'media';
-}
-
-function getEstadoDronClass(estado) {
-  const map = {
-    'en_base': 'online',
-    'en_vuelo': 'online',
-    'despegando': 'warning',
-    'regresando': 'warning',
-    'patrulla': 'online',
-    'cargando': 'warning',
-    'mantenimiento': 'offline',
-    'perdido': 'offline'
-  };
-  return map[estado] || 'offline';
-}
-
-function getEstadoDronIcon(estado) {
-  const map = {
-    'en_base': '🅿️',
-    'en_vuelo': '✈️',
-    'despegando': '🛫',
-    'regresando': '🛬',
-    'patrulla': '🔄',
-    'cargando': '🔋',
-    'mantenimiento': '🔧',
-    'perdido': '❌'
-  };
-  return map[estado] || '🚁';
-}
-
-function getTipoAlertaIcon(tipo) {
-  const map = {
-    'celular_no_autorizado': '📱',
-    'celular_autorizado_zona_restringida': '📱⚠️',
-    'gendarme_inactivo': '👮⚠️',
-    'gendarme_fuera_zona': '👮🚶',
-    'dron_detectado': '🚁',
-    'movimiento_sospechoso': '👤',
-    'puerta_abierta': '🚪',
-    'alarma_general': '🔔',
-    'dron_activo': '🚁✅',
-    'dron_bateria_baja': '🔋⚠️',
-    'dron_perdido': '🚁❌'
-  };
-  return map[tipo] || '🔔';
-}
-
-// ===== TOAST NOTIFICATIONS =====
-function mostrarToast(mensaje, severidad = 'media') {
-  const container = document.getElementById('toast-container');
-  const toast = document.createElement('div');
-  toast.className = `toast ${getSeveridadClass(severidad)}`;
-  toast.innerHTML = mensaje;
-  container.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.classList.add('fade-out');
-    setTimeout(() => toast.remove(), 300);
-  }, 5000);
-}
-
-// ===== MODAL =====
-function abrirModal(titulo, contenido, alertaId = null) {
-  document.getElementById('modal-titulo').textContent = titulo;
-  document.getElementById('modal-body').innerHTML = contenido;
-  document.getElementById('alerta-modal').classList.remove('hidden');
-  STATE.currentAlertaId = alertaId;
-}
-
-function cerrarModal() {
-  document.getElementById('alerta-modal').classList.add('hidden');
-  STATE.currentAlertaId = null;
-}
-
-function resolverAlerta() {
-  if (!STATE.currentAlertaId) return;
-  
-  if (STATE.socket && STATE.socket.connected) {
-    STATE.socket.emit('resolver_alerta', {
-      alerta_id: STATE.currentAlertaId,
-      resuelta_por: 'Operador Dashboard'
-    });
-    mostrarToast('✅ Alerta resuelta', 'baja');
-  } else {
-    fetch(`${CONFIG.API_URL}/alertas/${STATE.currentAlertaId}/resolver`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resuelta_por: 'Operador Dashboard' })
-    }).then(() => {
-      mostrarToast('✅ Alerta resuelta', 'baja');
-      cargarAlertas();
-    }).catch(err => {
-      mostrarToast('❌ Error al resolver alerta', 'critica');
-    });
-  }
-  cerrarModal();
-}
-
-// Cerrar modal con Escape
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') cerrarModal();
-});

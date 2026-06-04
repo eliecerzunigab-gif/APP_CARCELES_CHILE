@@ -1,0 +1,256 @@
+const fs = require('fs');
+const path = 'c:/Ezuniga_RES/APLICACIONES_FUNCIONALES/APP_CARCELES/frontend/index.html';
+let content = fs.readFileSync(path, 'utf8');
+
+// Find the JSON end and everything after it is broken
+const jsonEnd = '}]};';
+const lastJsonPos = content.lastIndexOf(jsonEnd);
+if (lastJsonPos === -1) {
+  console.log('JSON end not found');
+  process.exit(1);
+}
+
+// Keep everything up to and including the JSON
+const goodPart = content.substring(0, lastJsonPos + 4);
+
+// Now append the complete JS code
+const completeJS = `
+
+// ===== CONFIG =====
+var CONFIG={MAP_CENTER:[-33.4489,-70.6693],MAP_ZOOM:6,MAP_ZOOM_RECINTO:16,MAP_MAX_ZOOM:19,MAP_MIN_ZOOM:5};
+var STATE={recintos:[],gendarmes:[],dispositivos:[],drones:[],alertas:[],zonas:[],markers:{gendarmes:{},dispositivos:{},drones:{},alertas:{},zonas:{},recintos:{}},layers:{gendarmes:null,dispositivos:null,drones:null,alertas:null,zonas:null,recintos:null,recintoPoligonos:null},map:null,currentAlertaId:null,dronSeleccionado:null,vistaActual:'nacional',recintoActivo:null};
+function formatDate(d){if(!d)return'-';var date=new Date(d);var diff=Math.floor((Date.now()-date)/1000);if(diff<60)return'Ahora';if(diff<3600)return Math.floor(diff/60)+' min';if(diff<86400)return Math.floor(diff/3600)+'h';return date.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function getSeveridadClass(s){return{critica:'critica',alta:'alta',media:'media',baja:'baja'}[s]||'media';}
+function getEstadoDronClass(e){return{en_base:'online',en_vuelo:'online',despegando:'warning',regresando:'warning',patrulla:'online',cargando:'warning',mantenimiento:'offline',perdido:'offline'}[e]||'offline';}
+function getEstadoDronIcon(e){return{en_base:'🅿️',en_vuelo:'✈️',despegando:'🛫',regresando:'🛬',patrulla:'🔄',cargando:'🔋',mantenimiento:'🔧',perdido:'❌'}[e]||'🚁';}
+function getTipoAlertaIcon(t){return{celular_no_autorizado:'📱',gendarme_inactivo:'👮⚠️',dron_detectado:'🚁',movimiento_sospechoso:'👤',puerta_abierta:'🚪',alarma_general:'🔔',dron_bateria_baja:'🔋⚠️',dron_perdido:'🚁❌'}[t]||'🔔';}
+function mostrarToast(msg,sev){var c=document.getElementById('toast-container');var t=document.createElement('div');t.className='toast '+getSeveridadClass(sev||'media');t.innerHTML=msg;c.appendChild(t);setTimeout(function(){t.classList.add('fade-out');setTimeout(function(){t.remove()},300);},5000);}
+function abrirModal(titulo,contenido,alertaId){document.getElementById('modal-titulo').textContent=titulo;document.getElementById('modal-body').innerHTML=contenido;document.getElementById('alerta-modal').classList.remove('hidden');STATE.currentAlertaId=alertaId;}
+function cerrarModal(){document.getElementById('alerta-modal').classList.add('hidden');STATE.currentAlertaId=null;}
+function resolverAlerta(){if(STATE.currentAlertaId){STATE.alertas=STATE.alertas.filter(function(a){return a.id!==STATE.currentAlertaId});renderizarAlertas();actualizarStats();mostrarToast('✅ Alerta resuelta','baja');}cerrarModal();}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrarModal();});
+function initData(){
+  STATE.recintos=[];
+  Dc.regiones.forEach(function(r){
+    r.recintos.forEach(function(rec){
+      STATE.recintos.push({id:rec.nombre.replace(/[^a-zA-Z0-9]/g,'_'),nombre:rec.nombre,direccion:rec.direccion,latitud:rec.latitud,longitud:rec.longitud,capacidad:rec.capacidad,seguridad:rec.seguridad,region:r.nombre});
+    });
+  });
+  generarDatosSimulados();
+}
+function generarDatosSimulados(){
+  var nombres=['Carlos Muñoz','María González','José Rodríguez','Ana Martínez','Luis Pérez','Patricia López','Andrés Silva','Rosa Morales','Diego Vargas','Carmen Rojas','Francisco Soto','Laura Castillo','Manuel Reyes','Sandra Torres','Jorge Herrera','Verónica Castro','Ricardo Ortiz','Daniela Flores','Eduardo Gómez','Paola Medina','Cristian Ruiz','Marcela Díaz','Felipe Álvarez','Angélica Romero','Sebastián Acosta'];
+  var cargos=['Gendarme','Cabo','Sargento','Suboficial','Oficial'];
+  var fabricantes=['Samsung','Xiaomi','Motorola','Huawei','Apple','LG'];
+  var modelos=['Galaxy A54','Redmi Note 12','Moto G84','P60 Pro','iPhone 14','K62'];
+  var tiposAlerta=['celular_no_autorizado','gendarme_inactivo','movimiento_sospechoso','puerta_abierta','dron_detectado'];
+  var severidades=['critica','alta','media','baja'];
+  var estadosDron=['en_base','en_vuelo','patrulla','cargando','mantenimiento'];
+  STATE.gendarmes=[];STATE.dispositivos=[];STATE.drones=[];STATE.alertas=[];STATE.zonas=[];
+  STATE.recintos.forEach(function(recinto,idx){
+    var zonasRecinto=[
+      {id:recinto.id+'_z1',nombre:'Patio Principal',tipo:'patio',latitud:recinto.latitud+0.001,longitud:recinto.longitud+0.001,radio:30},
+      {id:recinto.id+'_z2',nombre:'Módulo A',tipo:'celda',latitud:recinto.latitud-0.001,longitud:recinto.longitud-0.001,radio:20},
+      {id:recinto.id+'_z3',nombre:'Acceso Principal',tipo:'acceso',latitud:recinto.latitud+0.002,longitud:recinto.longitud-0.001,radio:15},
+      {id:recinto.id+'_z4',nombre:'Enfermería',tipo:'enfermeria',latitud:recinto.latitud-0.002,longitud:recinto.longitud+0.002,radio:15},
+      {id:recinto.id+'_z5',nombre:'Perímetro Norte',tipo:'perimetro',latitud:recinto.latitud+0.003,longitud:recinto.longitud,radio:10}
+    ];
+    STATE.zonas.push.apply(STATE.zonas,zonasRecinto);
+    var numG=3+Math.floor(Math.random()*4);
+    for(var i=0;i<numG;i++){
+      var gIdx=(idx*6+i)%nombres.length;
+      var nomApe=nombres[gIdx].split(' ');
+      var activo=Math.random()>0.2;
+      var zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];
+      STATE.gendarmes.push({id:recinto.id+'_g'+i,nombre:nomApe[0],apellido:nomApe[1],rut:Math.floor(1e7+Math.random()*2e7)+'-'+Math.floor(Math.random()*9)+'k',cargo:cargos[Math.floor(Math.random()*cargos.length)],recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,ultima_ubicacion_lat:zona.latitud+(Math.random()-0.5)*0.002,ultima_ubicacion_lng:zona.longitud+(Math.random()-0.5)*0.002,ultimo_heartbeat:new Date(Date.now()-Math.random()*300000).toISOString(),en_linea:activo?1:0});
+    }
+    var numD=1+Math.floor(Math.random()*3);
+    for(var i=0;i<numD;i++){
+      var fIdx=Math.floor(Math.random()*fabricantes.length);
+      var noAut=Math.random()>0.6;
+      var zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];
+      STATE.dispositivos.push({id:recinto.id+'_d'+i,fabricante:fabricantes[fIdx],modelo:modelos[fIdx],tipo_dispositivo:'celular',es_autorizado:noAut?0:1,recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,latitud:zona.latitud+(Math.random()-0.5)*0.003,longitud:zona.longitud+(Math.random()-0.5)*0.003,senial_db:-40-Math.random()*40,ultima_deteccion:new Date(Date.now()-Math.random()*600000).toISOString()});
+    }
+    var numDr=1+Math.floor(Math.random()*2);
+    for(var i=0;i<numDr;i++){
+      var est=estadosDron[Math.floor(Math.random()*estadosDron.length)];
+      var enVuelo=est==='en_vuelo'||est==='patrulla';
+      STATE.drones.push({id:recinto.id+'_dr'+i,nombre:'Dron-'+recinto.nombre.substring(0,3).toUpperCase()+'-'+(i+1),modelo:'DJI Matrice 30T',recinto_id:recinto.id,recinto_nombre:recinto.nombre,estado:est,bateria:20+Math.random()*80,altitud:enVuelo?20+Math.random()*80:0,velocidad:enVuelo?5+Math.random()*25:0,latitud:enVuelo?recinto.latitud+(Math.random()-0.5)*0.01:recinto.latitud,longitud:enVuelo?recinto.longitud+(Math.random()-0.5)*0.01:recinto.longitud,modo_vuelo:enVuelo?'automático':'manual',camara_activa:enVuelo?Math.random()>0.3:false});
+    }
+    var numA=Math.floor(Math.random()*3);
+    for(var i=0;i<numA;i++){
+      var tipo=tiposAlerta[Math.floor(Math.random()*tiposAlerta.length)];
+      var sev=severidades[Math.floor(Math.random()*severidades.length)];
+      var zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];
+      var titulos={celular_no_autorizado:'Celular no autorizado detectado',gendarme_inactivo:'Gendarme sin señal',movimiento_sospechoso:'Movimiento sospechoso',puerta_abierta:'Puerta de seguridad abierta',dron_detectado:'Dron no identificado'};
+      STATE.alertas.push({id:recinto.id+'_a'+i,titulo:titulos[tipo]||'Alerta de seguridad',descripcion:'Detectado en '+zona.nombre+' del recinto '+recinto.nombre,tipo:tipo,severidad:sev,recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,latitud:zona.latitud,longitud:zona.longitud,created_at:new Date(Date.now()-Math.random()*3600000).toISOString(),resuelta:0});
+    }
+  });
+}
+function initMap(){
+  STATE.map=L.map('map',{center:CONFIG.MAP_CENTER,zoom:CONFIG.MAP_ZOOM,maxZoom:CONFIG.MAP_MAX_ZOOM,minZoom:CONFIG.MAP_MIN_ZOOM,zoomControl:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(STATE.map);
+  STATE.layers.recintos=L.layerGroup().addTo(STATE.map);
+  STATE.layers.recintoPoligonos=L.layerGroup().addTo(STATE.map);
+  STATE.layers.zonas=L.layerGroup().addTo(STATE.map);
+  STATE.layers.gendarmes=L.layerGroup().addTo(STATE.map);
+  STATE.layers.dispositivos=L.layerGroup().addTo(STATE.map);
+  STATE.layers.drones=L.layerGroup().addTo(STATE.map);
+  STATE.layers.alertas=L.layerGroup().addTo(STATE.map);
+  document.getElementById('toggle-gendarmes').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.gendarmes);else STATE.map.removeLayer(STATE.layers.gendarmes);});
+  document.getElementById('toggle-dispositivos').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.dispositivos);else STATE.map.removeLayer(STATE.layers.dispositivos);});
+  document.getElementById('toggle-drones').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.drones);else STATE.map.removeLayer(STATE.layers.drones);});
+  document.getElementById('toggle-alertas').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.alertas);else STATE.map.removeLayer(STATE.layers.alertas);});
+  document.getElementById('toggle-zonas').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.zonas);else STATE.map.removeLayer(STATE.layers.zonas);});
+  document.getElementById('recinto-select').addEventListener('change',function(e){if(e.target.value)cambiarAVistaRecinto(e.target.value);else cambiarAVistaNacional();});
+  document.getElementById('btn-vista-nacional').addEventListener('click',function(){document.getElementById('recinto-select').value='';cambiarAVistaNacional();});
+  dibujarTodo();
+}
+function dibujarTodo(){dibujarRecintos();dibujarZonas();dibujarGendarmes();dibujarDispositivos();dibujarDrones();dibujarAlertas();}
+function dibujarRecintos(){
+  STATE.layers.recintos.clearLayers();
+  STATE.layers.recintoPoligonos.clearLayers();
+  STATE.markers.recintos={};
+  STATE.recintos.forEach(function(recinto){
+    var gActivos=STATE.gendarmes.filter(function(g){return g.recinto_id===recinto.id&&g.en_linea}).length;
+    var dNoAut=STATE.dispositivos.filter(function(d){return d.recinto_id===recinto.id&&!d.es_autorizado}).length;
+    var aActivas=STATE.alertas.filter(function(a){return a.recinto_id===recinto.id&&!a.resuelta}).length;
+    var aCriticas=STATE.alertas.filter(function(a){return a.recinto_id===recinto.id&&a.severidad==='critica'&&!a.resuelta}).length;
+    var drActivos=STATE.drones.filter(function(d){return d.recinto_id===recinto.id&&(d.estado==='en_vuelo'||d.estado==='patrulla')}).length;
+    var color='#43a047',pulso='';
+    if(aCriticas>0){color='#e53935';pulso='animation:pulse 1.5s infinite;';}else if(aActivas>0){color='#ffa726';}
+    var icon=L.divIcon({html:'<div style="position:relative;"><div style="width:48px;height:48px;background:'+color+';border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.4);'+pulso+'">🏛️</div>'+(aActivas>0?'<div style="position:absolute;top:-4px;right:-4px;background:'+color+';color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid #fff;">'+aActivas+'</div>':'')+'</div>',className:'marker-icon',iconSize:[48,48],iconAnchor:[24,24]});
+    var marker=L.marker([recinto.latitud,recinto.longitud],{icon}).addTo(STATE.layers.recintos).bindPopup('<div style="color:#000;font-family:sans-serif;min-width:250px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:28px;">🏛️</span><div><strong style="font-size:16px;">'+recinto.nombre+'</strong><br><span style="font-size:11px;color:#666;">'+(recinto.direccion||'')+'</span><br><span style="font-size:11px;color:#666;">📍 '+recinto.region+'</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;"><div style="background:#e8f5e9;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#2e7d32;">'+gActivos+'</div><div style="font-size:10px;color:#666;">👮 Gendarmes</div></div><div style="background:#ffebee;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#c62828;">'+dNoAut+'</div><div style="font-size:10px;color:#666;">📱 No autorizados</div></div><div style="background:#fff3e0;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#e65100;">'+aActivas+'</div><div style="font-size:10px;color:#666;">🔔 Alertas</div></div><div style="background:#e3f2fd;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#1565c0;">'+drActivos+'</div><div style="font-size:10px;color:#666;">🚁 Drones</div></div></div><button onclick="cambiarAVistaRecinto(\\''+recinto.id+'\\');document.getElementById(\\'recinto-select\\').value=\\''+recinto.id+'\\';" style="width:100%;margin-top:8px;padding:6px;background:#1a237e;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Ver detalle del recinto</button></div>');
+    marker.on('click',function(){document.getElementById('recinto-select').value=recinto.id;cambiarAVistaRecinto(recinto.id);});
+    STATE.markers.recintos[recinto.id]=marker;
+  });
+}
+function dibujarZonas(){
+  STATE.layers.zonas.clearLayers();
+  var colorMap={patio:'#43a047',celda:'#e53935',acceso:'#ffa726',enfermeria:'#29b6f6',perimetro:'#ff7043'};
+  STATE.zonas.forEach(function(z){
+    if(STATE.recintoActivo&&z.recinto_id!==STATE.recintoActivo.id)return;
+    var color=colorMap[z.tipo]||'#9e9e9e';
+    L.circle([z.latitud,z.longitud],{radius:z.radio,color:color,fillColor:color,fillOpacity:0.15,weight:2,dashArray:'5,5'}).addTo(STATE.layers.zonas);
+    var icon=L.divIcon({html:'<div style="width:24px;height:24px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏘️</div>',className:'marker-icon',iconSize:[24,24],iconAnchor:[12,12]});
+    L.marker([z.latitud,z.longitud],{icon}).addTo(STATE.layers.zonas).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+z.nombre+'</strong><br><span style="font-size:11px;color:#666;">Tipo: '+z.tipo+'</span></div>');
+  });
+}
+function dibujarGendarmes(){
+  STATE.layers.gendarmes.clearLayers();
+  STATE.gendarmes.forEach(function(g){
+    if(STATE.recintoActivo&&g.recinto_id!==STATE.recintoActivo.id)return;
+    var enLinea=g.en_linea;
+    var color=enLinea?'#43a047':'#e53935';
+    var icon=L.divIcon({html:'<div style="width:32px;height:32px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(enLinea?'animation:pulse 2s infinite;':'')+'">👮</div>',className:'marker-icon',iconSize:[32,32],iconAnchor:[16,16]});
+    L.marker([g.ultima_ubicacion_lat,g.ultima_ubicacion_lng],{icon}).addTo(STATE.layers.gendarmes).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+g.nombre+' '+g.apellido+'</strong><br><span style="font-size:11px;color:#666;">'+g.cargo+'</span><br><span style="font-size:11px;color:#666;">📍 '+g.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+g.recinto_nombre+'</span><br><span style="font-size:11px;color:'+(enLinea?'#43a047':'#e53935')+';">'+(enLinea?'● En línea':'● Sin señal')+'</span></div>');
+  });
+}
+function dibujarDispositivos(){
+  STATE.layers.dispositivos.clearLayers();
+  STATE.dispositivos.forEach(function(d){
+    if(STATE.recintoActivo&&d.recinto_id!==STATE.recintoActivo.id)return;
+    var noAut=!d.es_autorizado;
+    var color=noAut?'#e53935':'#29b6f6';
+    var icon=L.divIcon({html:'<div style="width:28px;height:28px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(noAut?'animation:pulse-fast 1.5s infinite;':'')+'">📱</div>',className:'marker-icon',iconSize:[28,28],iconAnchor:[14,14]});
+    L.marker([d.latitud,d.longitud],{icon}).addTo(STATE.layers.dispositivos).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+d.fabricante+' '+d.modelo+'</strong><br><span style="font-size:11px;color:#666;">📶 '+Math.round(d.senial_db)+'dB</span><br><span style="font-size:11px;color:#666;">📍 '+d.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+d.recinto_nombre+'</span><br><span style="font-size:11px;color:'+(noAut?'#e53935':'#43a047')+';">'+(noAut?'❌ No autorizado':'✅ Autorizado')+'</span></div>');
+  });
+}
+function dibujarDrones(){
+  STATE.layers.drones.clearLayers();
+  STATE.drones.forEach(function(d){
+    if(STATE.recintoActivo&&d.recinto_id!==STATE.recintoActivo.id)return;
+    var enVuelo=d.estado==='en_vuelo'||d.estado==='patrulla';
+    var color=enVuelo?'#ffa726':(d.estado==='en_base'?'#43a047':'#e53935');
+    var icon=L.divIcon({html:'<div style="width:32px;height:32px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(enVuelo?'animation:pulse 2s infinite;':'')+'">🚁</div>',className:'marker-icon',iconSize:[32,32],iconAnchor:[16,16]});
+    var marker=L.marker([d.latitud,d.longitud],{icon}).addTo(STATE.layers.drones).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+d.nombre+'</strong><br><span style="font-size:11px;color:#666;">'+getEstadoDronIcon(d.estado)+' '+d.estado+'</span><br><span style="font-size:11px;color:#666;">🔋 '+Math.round(d.bateria)+'% · 📏 '+Math.round(d.altitud)+'m · 💨 '+Math.round(d.velocidad)+'km/h</span><br><span style="font-size:11px;color:#666;">🏛️ '+d.recinto_nombre+'</span></div>');
+    marker.on('click',function(){seleccionarDron(d.id);});
+  });
+}
+function dibujarAlertas(){
+  STATE.layers.alertas.clearLayers();
+  STATE.alertas.forEach(function(a){
+    if(STATE.recintoActivo&&a.recinto_id!==STATE.recintoActivo.id)return;
+    var colorMap={critica:'#e53935',alta:'#ffa726',media:'#29b6f6',baja:'#43a047'};
+    var color=colorMap[a.severidad]||'#ffa726';
+    var icon=L.divIcon({html:'<div style="width:36px;height:36px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pulse-fast 1s infinite;">🔔</div>',className:'marker-icon',iconSize:[36,36],iconAnchor:[18,18]});
+    var marker=L.marker([a.latitud,a.longitud],{icon}).addTo(STATE.layers.alertas).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+a.titulo+'</strong><br><span style="font-size:11px;color:#666;">'+a.descripcion+'</span><br><span style="font-size:11px;color:#666;">📍 '+a.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+a.recinto_nombre+'</span><br><span style="font-size:11px;color:#666;">⏱️ '+formatDate(a.created_at)+'</span></div>');
+    marker.on('click',function(){abrirModal(a.titulo,'<p>'+a.descripcion+'</p><p style="color:#666;font-size:12px;">📍 '+a.zona_nombre+'<br>🏛️ '+a.recinto_nombre+'<br>⏱️ '+formatDate(a.created_at)+'</p>',a.id);});
+  });
+}
+function cambiarAVistaRecinto(recintoId){
+  var recinto=STATE.recintos.find(function(r){return r.id===recintoId});
+  if(!recinto)return;
+  STATE.vistaActual='recinto';
+  STATE.recintoActivo=recinto;
+  document.getElementById('btn-vista-nacional').style.display='inline-block';
+  document.getElementById('vista-indicator').textContent='🏛️ '+recinto.nombre;
+  document.getElementById('vista-indicator').className='vista-indicator recinto';
+  STATE.map.setView([recinto.latitud,recinto.longitud],CONFIG.MAP_ZOOM_RECINTO);
+  dibujarTodo();
+  renderizarGendarmes();
+  renderizarDispositivos();
+  renderizarDrones();
+  renderizarAlertas();
+  actualizarStats();
+}
+function cambiarAVistaNacional(){
+  STATE.vistaActual='nacional';
+  STATE.recintoActivo=null;
+  document.getElementById('btn-vista-nacional').style.display='none';
+  document.getElementById('vista-indicator').textContent='🇨🇱 Vista Nacional';
+  document.getElementById('vista-indicator').className='vista-indicator nacional';
+  STATE.map.setView(CONFIG.MAP_CENTER,CONFIG.MAP_ZOOM);
+  dibujarTodo();
+  renderizarGendarmes();
+  renderizarDispositivos();
+  renderizarDrones();
+  renderizarAlertas();
+  actualizarStats();
+}
+function renderizarGendarmes(){
+  var list=document.getElementById('gendarmes-list');
+  var count=document.getElementById('gendarmes-count');
+  var filtered=STATE.gendarmes;
+  if(STATE.recintoActivo)filtered=filtered.filter(function(g){return g.recinto_id===STATE.recintoActivo.id});
+  count.textContent=filtered.length;
+  if(filtered.length===0){list.innerHTML='<div class="loading">Sin gendarmes</div>';return;}
+  list.innerHTML='';
+  filtered.forEach(function(g){
+    var item=document.createElement('div');item.className='list-item';
+    item.innerHTML='<div class="avatar '+(g.en_linea?'online':'offline')+'">👮</div><div class="info"><div class="name">'+g.nombre+' '+g.apellido+'</div><div class="detail">'+g.cargo+' · '+g.recinto_nombre+'</div></div><span class="status-dot '+(g.en_linea?'online':'offline')+'"></span>';
+    list.appendChild(item);
+  });
+}
+function renderizarDispositivos(){
+  var list=document.getElementById('dispositivos-list');
+  var count=document.getElementById('dispositivos-count');
+  var filtered=STATE.dispositivos;
+  if(STATE.recintoActivo)filtered=filtered.filter(function(d){return d.recinto_id===STATE.recintoActivo.id});
+  count.textContent=filtered.length;
+  if(filtered.length===0){list.innerHTML='<div class="loading">Sin dispositivos</div>';return;}
+  list.innerHTML='';
+  filtered.forEach(function(d){
+    var item=document.createElement('div');item.className='list-item';
+    item.innerHTML='<div class="avatar '+(d.es_autorizado?'info':'danger')+'">📱</div><div class="info"><div class="name">'+d.fabricante+' '+d.modelo+'</div><div class="detail">'+(d.es_autorizado?'✅ Autorizado':'❌ No autorizado')+' · '+d.recinto_nombre+'</div></div><span class="status-dot '+(d.es_autorizado?'online':'offline')+'"></span>';
+    list.appendChild(item);
+  });
+}
+function renderizarDrones(){
+  var list=document.getElementById('drones-list');
+  var count=document.getElementById('drones-count');
+  var filtered=STATE.drones;
+  if(STATE.recintoActivo)filtered=filtered.filter(function(d){return d.recinto_id===STATE.recintoActivo.id});
+  count.textContent=filtered.length;
+  if(filtered.length===0){list.innerHTML='<div class="loading">Sin drones</div>';return;}
+  list.innerHTML='';
+  filtered.forEach(function(d){
+    var item=document.createElement('div');item.className='list-item';
+    item.innerHTML='<div class="avatar '+getEstadoDronClass(d.estado)+'">🚁</div><div class="info"><div class="name">'+d.nombre+'</div><div class="detail">'+getEstadoDronIcon(d.estado)+' '+d.estado+' · 🔋'+Math.round(d.bateria)+'%</div></div><span class="status-dot '+getEstadoDronClass(d.estado)+'"></span>';
+    item.onclick=function(){seleccionarDron(d.id);};
+    list.appendChild(item);
+  });
+}
+function renderizarAlertas(){
+  var list=document.getElementById('alertas-list');
+  var count=document

@@ -1,228 +1,164 @@
-// ===== PANEL DE GENDARMES =====
-function cargarGendarmes() {
-  fetch(`${CONFIG.API_URL}/gendarmes?activo=1`)
-    .then(res => res.json())
-    .then(gendarmes => {
-      STATE.gendarmes = gendarmes;
-      renderizarGendarmes();
-    })
-    .catch(err => console.error('Error cargando gendarmes:', err));
-}
+// ============================================
+// SISGEN - Paneles Laterales
+// ============================================
 
-function renderizarGendarmes() {
+// ========== GENDARMES ==========
+function actualizarGendarmes() {
   const container = document.getElementById('gendarmes-list');
-  const count = document.getElementById('gendarmes-count');
-  
-  if (!STATE.gendarmes.length) {
-    container.innerHTML = '<div class="loading">Sin gendarmes registrados</div>';
-    count.textContent = '0';
-    return;
-  }
+  if (!container) return;
+  container.innerHTML = generarListaGendarmesHTML();
+  document.getElementById('gendarmes-count').textContent = STATE.gendarmes.length;
+}
 
-  count.textContent = STATE.gendarmes.length;
-  
-  container.innerHTML = STATE.gendarmes.map(g => {
-    const enLinea = g.ultimo_heartbeat && 
-      (new Date() - new Date(g.ultimo_heartbeat)) < CONFIG.GENDARME_INACTIVO_MINUTOS * 60 * 1000;
-    
-    return `
-      <div class="list-item" onclick="centrarMapa(${g.ultima_ubicacion_lat || 0}, ${g.ultima_ubicacion_lng || 0})">
-        <div class="avatar ${enLinea ? 'online' : 'offline'}">👮</div>
-        <div class="info">
-          <div class="name">${g.nombre} ${g.apellido}</div>
-          <div class="detail">${g.cargo || 'Gendarme'} · ${g.zona_nombre || 'Sin ubicación'}</div>
-        </div>
-        <span class="status-dot ${enLinea ? 'online' : 'offline'}"></span>
+function generarListaGendarmesHTML() {
+  if (!STATE.gendarmes.length) return '<div class="loading">Sin datos</div>';
+  const filtrados = STATE.recintoActual
+    ? STATE.gendarmes.filter(g => g.recinto_id == STATE.recintoActual.id)
+    : STATE.gendarmes;
+
+  return filtrados.map(g => {
+    const activo = g.estado === 'activo';
+    const recinto = STATE.recintos.find(r => r.id == g.recinto_id);
+    const ultimoHeartbeat = g.ultimo_heartbeat ? new Date(g.ultimo_heartbeat).toLocaleTimeString() : 'N/A';
+    return `<div class="panel-item" onclick="centrarMapa(${g.latitud}, ${g.longitud})">
+      <span class="item-icon">👮</span>
+      <div class="item-info">
+        <div class="item-name">${g.nombre}</div>
+        <div class="item-detail">${recinto ? recinto.nombre : '—'} · 📡 ${ultimoHeartbeat}</div>
       </div>
-    `;
+      <span class="item-status ${activo ? 'status-activo' : 'status-inactivo'}">${activo ? '🟢' : '🔴'}</span>
+    </div>`;
   }).join('');
 }
 
-// ===== PANEL DE DISPOSITIVOS =====
-function cargarDispositivos() {
-  fetch(`${CONFIG.API_URL}/dispositivos?activo=1`)
-    .then(res => res.json())
-    .then(dispositivos => {
-      STATE.dispositivos = dispositivos;
-      renderizarDispositivos();
-    })
-    .catch(err => console.error('Error cargando dispositivos:', err));
-}
-
-function renderizarDispositivos() {
+// ========== DISPOSITIVOS ==========
+function actualizarDispositivos() {
   const container = document.getElementById('dispositivos-list');
-  const count = document.getElementById('dispositivos-count');
-  
-  const noAutorizados = STATE.dispositivos.filter(d => !d.es_autorizado);
-  
-  if (!STATE.dispositivos.length) {
-    container.innerHTML = '<div class="loading">Sin dispositivos detectados</div>';
-    count.textContent = '0';
-    return;
-  }
+  if (!container) return;
+  container.innerHTML = generarListaDispositivosHTML();
+  document.getElementById('dispositivos-count').textContent = STATE.dispositivos.length;
+}
 
-  count.textContent = noAutorizados.length;
-  
-  container.innerHTML = STATE.dispositivos.map(d => {
-    const peligroso = !d.es_autorizado;
-    return `
-      <div class="list-item" onclick="centrarMapa(${d.latitud || 0}, ${d.longitud || 0})">
-        <div class="avatar ${peligroso ? 'danger' : 'info'}">📱</div>
-        <div class="info">
-          <div class="name">${d.fabricante || 'Desconocido'} ${d.modelo || ''}</div>
-          <div class="detail">
-            ${d.tipo_dispositivo || 'celular'} · ${d.senial_db || '-'}dB 
-            ${peligroso ? '· ❌ No autorizado' : '· ✅ Autorizado'}
-          </div>
-        </div>
-        <span class="status-dot ${peligroso ? 'offline' : 'online'}"></span>
+function generarListaDispositivosHTML() {
+  if (!STATE.dispositivos.length) return '<div class="loading">Sin datos</div>';
+  const filtrados = STATE.recintoActual
+    ? STATE.dispositivos.filter(d => d.recinto_id == STATE.recintoActual.id)
+    : STATE.dispositivos;
+
+  // Ordenar: no autorizados primero
+  const ordenados = [...filtrados].sort((a, b) => (a.autorizado === b.autorizado ? 0 : a.autorizado ? 1 : -1));
+
+  return ordenados.map(d => {
+    const autorizado = d.autorizado;
+    const recinto = STATE.recintos.find(r => r.id == d.recinto_id);
+    return `<div class="panel-item ${!autorizado ? 'alta' : ''}" onclick="centrarMapa(${d.latitud}, ${d.longitud})">
+      <span class="item-icon">📱</span>
+      <div class="item-info">
+        <div class="item-name">${d.imei || 'IMEI: ' + d.id}</div>
+        <div class="item-detail">${recinto ? recinto.nombre : '—'} · 📶 ${d.intensidad_senal || 0}% · 🔋 ${d.bateria || 0}%</div>
       </div>
-    `;
+      <span class="item-status ${autorizado ? 'status-activo' : 'status-inactivo'}">${autorizado ? '✅' : '🚫'}</span>
+    </div>`;
   }).join('');
 }
 
-// ===== PANEL DE DRONES =====
-function cargarDrones() {
-  fetch(`${CONFIG.API_URL}/drones`)
-    .then(res => res.json())
-    .then(drones => {
-      STATE.drones = drones;
-      renderizarDrones();
-      actualizarSelectorDrones();
-    })
-    .catch(err => console.error('Error cargando drones:', err));
-}
-
-function renderizarDrones() {
+// ========== DRONES ==========
+function actualizarDrones() {
   const container = document.getElementById('drones-list');
-  const count = document.getElementById('drones-count');
-  
-  if (!STATE.drones.length) {
-    container.innerHTML = '<div class="loading">Sin drones registrados</div>';
-    count.textContent = '0';
-    return;
-  }
+  if (!container) return;
+  container.innerHTML = generarListaDronesHTML();
+  document.getElementById('drones-count').textContent = STATE.drones.length;
 
-  count.textContent = STATE.drones.length;
-  
-  container.innerHTML = STATE.drones.map(d => {
-    const estadoClass = getEstadoDronClass(d.estado);
-    return `
-      <div class="list-item" onclick="seleccionarDron('${d.id}')">
-        <div class="avatar ${estadoClass}">🚁</div>
-        <div class="info">
-          <div class="name">${d.nombre}</div>
-          <div class="detail">
-            ${getEstadoDronIcon(d.estado)} ${d.estado} · 🔋${Math.round(d.bateria || 0)}%
-          </div>
-        </div>
-        <span class="status-dot ${estadoClass}"></span>
+  // Actualizar select de drones
+  const select = document.getElementById('dron-select');
+  if (select) {
+    const actual = select.value;
+    select.innerHTML = '<option value="">Seleccionar...</option>';
+    STATE.drones.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = `${d.nombre || 'Dron #' + d.id} (${d.estado.replace(/_/g, ' ')})`;
+      select.appendChild(opt);
+    });
+    if (actual) select.value = actual;
+  }
+}
+
+function generarListaDronesHTML() {
+  if (!STATE.drones.length) return '<div class="loading">Sin datos</div>';
+  const filtrados = STATE.recintoActual
+    ? STATE.drones.filter(d => d.recinto_id == STATE.recintoActual.id)
+    : STATE.drones;
+
+  return filtrados.map(d => {
+    const enVuelo = d.estado === 'en_vuelo' || d.estado === 'patrullando';
+    const recinto = STATE.recintos.find(r => r.id == d.recinto_id);
+    return `<div class="panel-item" onclick="centrarMapa(${d.latitud}, ${d.longitud})">
+      <span class="item-icon">🚁</span>
+      <div class="item-info">
+        <div class="item-name">${d.nombre || 'Dron #' + d.id}</div>
+        <div class="item-detail">${recinto ? recinto.nombre : '—'} · 🔋 ${d.bateria || 0}% · 📏 ${d.altitud || 0}m</div>
       </div>
-    `;
+      <span class="item-status ${enVuelo ? 'status-en_vuelo' : 'status-en_tierra'}">${enVuelo ? '🟢' : '🔴'}</span>
+    </div>`;
   }).join('');
 }
 
-function actualizarSelectorDrones() {
-  const select = document.getElementById('dron-select');
-  const currentValue = select.value;
-  select.innerHTML = '<option value="">Seleccionar dron...</option>';
-  
-  STATE.drones.forEach(d => {
-    const option = document.createElement('option');
-    option.value = d.id;
-    option.textContent = `${d.nombre} (${d.estado})`;
-    select.appendChild(option);
-  });
-  
-  if (currentValue) select.value = currentValue;
-}
-
-// ===== PANEL DE ALERTAS =====
-function cargarAlertas() {
-  fetch(`${CONFIG.API_URL}/alertas?resuelta=0&limit=20`)
-    .then(res => res.json())
-    .then(alertas => {
-      STATE.alertas = alertas;
-      renderizarAlertas();
-    })
-    .catch(err => console.error('Error cargando alertas:', err));
-}
-
-function renderizarAlertas() {
+// ========== ALERTAS ==========
+function actualizarAlertas() {
   const container = document.getElementById('alertas-list');
-  const count = document.getElementById('alertas-count');
-  
-  if (!STATE.alertas.length) {
-    container.innerHTML = '<div class="loading">Sin alertas activas ✅</div>';
-    count.textContent = '0';
-    return;
-  }
+  if (!container) return;
+  container.innerHTML = generarListaAlertasHTML();
+  const noResueltas = STATE.alertas.filter(a => !a.resuelta).length;
+  document.getElementById('alertas-count').textContent = noResueltas;
+}
 
-  count.textContent = STATE.alertas.length;
-  
-  container.innerHTML = STATE.alertas.map(a => `
-    <div class="alerta-item ${getSeveridadClass(a.severidad)}" 
-         onclick="abrirModalAlerta('${a.id}')">
-      <span class="alerta-icon">${getTipoAlertaIcon(a.tipo)}</span>
-      <div class="alerta-content">
-        <div class="alerta-titulo">${a.titulo}</div>
-        <div class="alerta-desc">${a.descripcion || ''}</div>
-        <div class="alerta-time">${formatDate(a.created_at)} · ${a.zona_nombre || ''}</div>
+function generarListaAlertasHTML() {
+  if (!STATE.alertas.length) return '<div class="loading">Sin alertas</div>';
+  const filtradas = STATE.recintoActual
+    ? STATE.alertas.filter(a => a.recinto_id == STATE.recintoActual.id)
+    : STATE.alertas;
+
+  const noResueltas = filtradas.filter(a => !a.resuelta);
+  const resueltas = filtradas.filter(a => a.resuelta);
+
+  return [...noResueltas, ...resueltas].slice(0, 50).map(a => {
+    const recinto = STATE.recintos.find(r => r.id == a.recinto_id);
+    const nivel = a.nivel || 'media';
+    const claseNivel = nivel === 'alta' ? 'alta' : nivel === 'media' ? 'media' : 'baja';
+    const icono = nivel === 'alta' ? '🚨' : nivel === 'media' ? '⚠️' : 'ℹ️';
+    return `<div class="panel-item ${claseNivel} ${!a.resuelta && nivel === 'alta' ? 'alerta-destacada' : ''}" onclick="mostrarDetalleAlerta('${a.id}')">
+      <span class="item-icon">${icono}</span>
+      <div class="item-info">
+        <div class="item-name">${a.tipo}</div>
+        <div class="item-detail">${recinto ? recinto.nombre : '—'}${a.zona ? ' · ' + a.zona : ''} · ${a.fecha ? new Date(a.fecha).toLocaleTimeString() : ''}</div>
       </div>
-    </div>
-  `).join('');
+      <span class="item-status ${a.resuelta ? 'status-activo' : nivel === 'alta' ? 'status-inactivo' : 'status-pendiente'}">${a.resuelta ? '✅' : nivel === 'alta' ? '🔴' : '🟡'}</span>
+    </div>`;
+  }).join('');
 }
 
-function abrirModalAlerta(alertaId) {
-  const alerta = STATE.alertas.find(a => a.id === alertaId);
+function mostrarDetalleAlerta(id) {
+  const alerta = STATE.alertas.find(a => a.id == id);
   if (!alerta) return;
-
+  STATE.alertaActual = alerta;
+  const recinto = STATE.recintos.find(r => r.id == alerta.recinto_id);
+  const nivel = alerta.nivel || 'media';
+  const icono = nivel === 'alta' ? '🚨' : nivel === 'media' ? '⚠️' : 'ℹ️';
   const contenido = `
-    <div style="margin-bottom:12px;">
-      <span style="font-size:32px;">${getTipoAlertaIcon(alerta.tipo)}</span>
-      <span class="badge badge-danger" style="float:right;">${alerta.severidad.toUpperCase()}</span>
-    </div>
-    <p><strong>${alerta.titulo}</strong></p>
-    <p style="color:var(--text-secondary);">${alerta.descripcion || 'Sin descripción'}</p>
-    <hr style="border-color:var(--border);margin:12px 0;">
-    <div style="font-size:13px;color:var(--text-secondary);">
-      <div>📍 Zona: ${alerta.zona_nombre || 'Desconocida'}</div>
-      <div>⏱️ ${new Date(alerta.created_at).toLocaleString('es-CL')}</div>
-      ${alerta.dispositivo_info ? `<div>📱 Dispositivo: ${alerta.dispositivo_info}</div>` : ''}
-      ${alerta.gendarme_nombre ? `<div>👮 Gendarme: ${alerta.gendarme_nombre}</div>` : ''}
-      ${alerta.dron_nombre ? `<div>🚁 Dron: ${alerta.dron_nombre}</div>` : ''}
-    </div>
+    <p><strong>${icono} ${alerta.tipo}</strong></p>
+    <p>📍 <strong>Ubicación:</strong> ${recinto ? recinto.nombre : 'Desconocido'}${alerta.zona ? ' · Zona: ' + alerta.zona : ''}</p>
+    <p>📝 <strong>Descripción:</strong> ${alerta.descripcion || 'Sin descripción'}</p>
+    <p>🕐 <strong>Fecha:</strong> ${alerta.fecha ? new Date(alerta.fecha).toLocaleString() : 'N/A'}</p>
+    <p>⚠️ <strong>Nivel:</strong> <span style="color:${nivel === 'alta' ? '#ef4444' : nivel === 'media' ? '#eab308' : '#3b82f6'}">${nivel.toUpperCase()}</span></p>
+    ${alerta.resuelta ? '<p>✅ <strong>Resuelta</strong></p>' : ''}
   `;
-
-  abrirModal(alerta.titulo, contenido, alertaId);
+  mostrarModal(`🔔 Alerta #${alerta.id}`, contenido);
 }
 
-// ===== FUNCIONES AUXILIARES =====
+// ========== CENTRAR MAPA ==========
 function centrarMapa(lat, lng) {
-  if (lat && lng && STATE.map) {
-    STATE.map.setView([lat, lng], 18);
+  if (map) {
+    map.setView([lat, lng], 17);
   }
-}
-
-function actualizarHeaderStats() {
-  document.getElementById('stat-recinto').querySelector('.stat-value').textContent = STATE.recintos.length;
-  
-  // Estos se actualizan con el dashboard
-  cargarDashboardResumen();
-}
-
-// ===== INICIALIZAR PANELES =====
-function initPaneles() {
-  cargarGendarmes();
-  cargarDispositivos();
-  cargarDrones();
-  cargarAlertas();
-  
-  // Refrescar periódicamente
-  setInterval(() => {
-    cargarGendarmes();
-    cargarDispositivos();
-    cargarDrones();
-    cargarAlertas();
-  }, CONFIG.REFRESH_INTERVAL);
 }

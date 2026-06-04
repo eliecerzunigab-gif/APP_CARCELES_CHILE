@@ -5,358 +5,145 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>🔒 SISGEN - Gendarmería de Chile</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--primary:#1a237e;--primary-light:#283593;--primary-dark:#0d1b5e;--accent:#00bcd4;--danger:#e53935;--warning:#ffa726;--success:#43a047;--info:#29b6f6;--bg-dark:#0a0e27;--bg-card:#131837;--text-primary:#e8eaf6;--text-secondary:#9fa8da;--border:#1e2650}
-html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg-dark);color:var(--text-primary)}
-.marker-icon{background:transparent!important;border:none!important}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
-@keyframes pulse-fast{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
-.top-bar{height:48px;background:linear-gradient(135deg,var(--primary-dark),var(--primary));display:flex;align-items:center;padding:0 12px;gap:10px;z-index:1000;position:relative;flex-shrink:0}
-.logo{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.logo-icon{font-size:24px}
-.logo-text h1{font-size:16px;color:#fff;line-height:1}
-.logo-text .subtitle{font-size:9px;color:var(--text-secondary);display:block}
-.header-stats{display:flex;gap:8px;margin-left:auto}
-.stat-item{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.08);padding:3px 8px;border-radius:12px;font-size:10px}
-.stat-value{font-weight:700;color:var(--accent);font-size:12px}
-.stat-label{color:var(--text-secondary)}
-.header-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.connection-status{font-size:10px;color:var(--success);background:rgba(67,160,71,0.15);padding:3px 8px;border-radius:10px}
-.btn-icon{background:rgba(255,255,255,0.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
-.main-container{display:flex;height:calc(100vh - 48px);position:relative}
-.sidebar-left,.sidebar-right{width:280px;background:var(--bg-card);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
-.sidebar-left{border-right:1px solid var(--border)}
-.sidebar-right{border-left:1px solid var(--border)}
-.panel{flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border)}
-.panel:last-child{border-bottom:none}
-.panel-header{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);flex-shrink:0}
-.panel-header h3{font-size:11px;font-weight:600;color:var(--text-secondary)}
-.badge{background:var(--primary-light);color:#fff;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600}
-.badge-danger{background:var(--danger)}
-.badge-info{background:var(--info)}
-.panel-body{flex:1;overflow-y:auto;padding:4px}
-.panel-body::-webkit-scrollbar{width:4px}
-.panel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.loading{padding:15px;text-align:center;color:var(--text-secondary);font-size:12px}
-.list-item{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;transition:background .2s}
-.list-item:hover{background:rgba(255,255,255,0.05)}
-.avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.avatar.online{background:rgba(67,160,71,0.2)}
-.avatar.offline{background:rgba(229,57,53,0.2)}
-.avatar.danger{background:rgba(229,57,53,0.2)}
-.avatar.info{background:rgba(41,182,246,0.2)}
-.avatar.warning{background:rgba(255,167,38,0.2)}
-.info{flex:1;min-width:0}
-.name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.detail{font-size:9px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.status-dot.online{background:var(--success);box-shadow:0 0 6px var(--success)}
-.status-dot.offline{background:var(--danger)}
-.status-dot.warning{background:var(--warning)}
-.map-container{flex:1;display:flex;flex-direction:column;position:relative;min-width:0}
-.map-toolbar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg-card);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;flex-shrink:0}
-.toolbar-left{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.toolbar-right{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.btn-back{background:var(--primary-light);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px}
-.form-select{background:var(--bg-dark);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:4px;font-size:11px;max-width:200px}
-.vista-indicator{font-size:11px;padding:3px 8px;border-radius:4px}
-.vista-indicator.nacional{background:rgba(0,188,212,0.1);color:var(--accent)}
-.vista-indicator.recinto{background:rgba(255,167,38,0.1);color:var(--warning)}
-.toggle-label{display:flex;align-items:center;gap:3px;cursor:pointer;font-size:10px;color:var(--text-secondary);padding:2px 5px;border-radius:4px;background:rgba(255,255,255,0.03)}
-.toggle-label input{accent-color:var(--accent)}
-#map{flex:1;z-index:1}
-.alerta-item{display:flex;gap:6px;padding:5px 6px;border-radius:6px;cursor:pointer;margin-bottom:3px;transition:background .2s;border-left:3px solid transparent}
-.alerta-item:hover{background:rgba(255,255,255,0.05)}
-.alerta-item.critica{border-left-color:var(--danger);background:rgba(229,57,53,0.05)}
-.alerta-item.alta{border-left-color:var(--warning);background:rgba(255,167,38,0.05)}
-.alerta-item.media{border-left-color:var(--info);background:rgba(41,182,246,0.05)}
-.alerta-item.baja{border-left-color:var(--success);background:rgba(67,160,71,0.05)}
-.alerta-icon{font-size:16px;flex-shrink:0}
-.alerta-content{flex:1;min-width:0}
-.alerta-titulo{font-size:11px;font-weight:600}
-.alerta-desc{font-size:9px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.alerta-time{font-size:8px;color:#5c6bc0;margin-top:1px}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.stat-card{background:rgba(255,255,255,0.03);padding:6px;border-radius:6px;text-align:center}
-.stat-card .stat-number{font-size:18px;font-weight:700;color:var(--accent)}
-.stat-card .stat-desc{font-size:9px;color:var(--text-secondary)}
-.stat-card.stat-warning .stat-number{color:var(--warning)}
-.stat-card.stat-danger .stat-number{color:var(--danger)}
-.stat-card.stat-info .stat-number{color:var(--info)}
-.dron-selector{padding:4px 0}
-.dron-selector select{width:100%}
-.dron-info{padding:4px 0}
-.dron-info-row{display:flex;justify-content:space-between;padding:2px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,0.05)}
-.dron-info-row span:last-child{font-weight:600;color:var(--accent)}
-.dron-buttons{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:4px 0}
-.btn-dron{padding:5px;border:none;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600;transition:all .2s}
-.btn-dron:disabled{opacity:.4;cursor:not-allowed}
-.btn-despegar{background:var(--success);color:#fff}
-.btn-aterrizar{background:var(--warning);color:#000}
-.btn-patrulla{background:var(--info);color:#fff}
-.btn-regresar{background:var(--primary-light);color:#fff}
-.btn-camara{background:#7b1fa2;color:#fff}
-.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999}
-.modal.hidden{display:none}
-.modal-content{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto}
-.modal-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)}
-.modal-header h3{font-size:14px}
-.btn-close{background:none;border:none;color:var(--text-secondary);font-size:22px;cursor:pointer}
-.modal-body{padding:16px;font-size:13px;color:var(--text-secondary);line-height:1.5}
-.modal-footer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);justify-content:flex-end}
-.btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
-.btn-secondary{background:var(--border);color:var(--text-primary)}
-.btn-primary{background:var(--primary-light);color:#fff}
-#toast-container{position:fixed;bottom:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:6px}
-.toast{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:slideIn .3s ease}
-.toast.critica,.toast.alta{background:var(--danger);color:#fff}
-.toast.media{background:var(--warning);color:#000}
-.toast.baja{background:var(--success);color:#fff}
-.toast.fade-out{animation:fadeOut .3s ease forwards}
-@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-@keyframes fadeOut{to{opacity:0;transform:translateX(100%)}}
-.mobile-bottom-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);z-index:999;padding:4px 0;justify-content:space-around}
-.mobile-bottom-bar button{background:none;border:none;color:var(--text-secondary);font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;border-radius:6px;transition:all .2s}
-.mobile-bottom-bar button span{font-size:18px}
-.mobile-bottom-bar button.active{color:var(--accent);background:rgba(0,188,212,0.1)}
-.mobile-bottom-bar button .label{font-size:9px}
-.mobile-panel-overlay{display:none;position:fixed;top:48px;left:0;right:0;bottom:52px;background:var(--bg-card);z-index:998;overflow-y:auto;padding:8px}
-.mobile-panel-overlay.show{display:block}
-@media(max-width:1024px){.sidebar-right{width:240px}.sidebar-left{width:240px}}
-@media(max-width:768px){
-.sidebar-left,.sidebar-right{display:none}
-.mobile-bottom-bar{display:flex}
-.header-stats{display:none}
-.top-bar{padding:0 8px}
-.logo-text .subtitle{display:none}
-.map-toolbar{padding:4px 6px}
-.toolbar-right{gap:2px}
-.toggle-label{font-size:9px;padding:2px 4px}
-.form-select{font-size:10px;max-width:140px}
-.mobile-panel-overlay .panel{border-bottom:1px solid var(--border);flex:none}
-.mobile-panel-overlay .panel:last-child{border-bottom:none}
-}
-@media(max-width:480px){
-.top-bar{height:42px}
-.logo-icon{font-size:20px}
-.logo-text h1{font-size:14px}
-.connection-status{font-size:8px;padding:2px 6px}
-.btn-icon{width:26px;height:26px;font-size:12px}
-.main-container{height:calc(100vh - 42px)}
-.mobile-bottom-bar{height:48px}
-.mobile-bottom-bar button{padding:2px 6px}
-.mobile-bottom-bar button span{font-size:16px}
-.mobile-bottom-bar button .label{font-size:8px}
-.mobile-panel-overlay{top:42px;bottom:48px}
-}
-</style>
+<link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <header class="top-bar">
-<div class="logo">
-<span class="logo-icon">🇨🇱</span>
-<div class="logo-text">
-<h1>SISGEN</h1>
-<span class="subtitle">Sistema de Gestión de Seguridad Penitenciaria · Gendarmería de Chile</span>
-</div>
-</div>
-<div class="header-stats">
-<div class="stat-item" id="stat-recinto"><span class="stat-value">0</span><span class="stat-label">Recintos</span></div>
-<div class="stat-item" id="stat-gendarmes"><span class="stat-value">0</span><span class="stat-label">Gendarmes</span></div>
-<div class="stat-item" id="stat-dispositivos"><span class="stat-value">0</span><span class="stat-label">Celulares</span></div>
-<div class="stat-item" id="stat-alertas"><span class="stat-value">0</span><span class="stat-label">Alertas</span></div>
-<div class="stat-item" id="stat-drones"><span class="stat-value">0</span><span class="stat-label">Drones</span></div>
-</div>
-<div class="header-actions">
-<span class="connection-status">● Estático</span>
-<button class="btn-icon" onclick="window.location.reload()" title="Recargar">🔄</button>
-</div>
+  <div class="logo">
+    <span class="logo-icon">🇨🇱</span>
+    <div class="logo-text">
+      <h1>SISGEN</h1>
+      <span class="subtitle">Sistema de Gestión de Seguridad Penitenciaria · Gendarmería de Chile</span>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-item" id="stat-recinto"><span class="stat-value">0</span><span class="stat-label">Recintos</span></div>
+    <div class="stat-item" id="stat-gendarmes"><span class="stat-value">0</span><span class="stat-label">Gendarmes</span></div>
+    <div class="stat-item" id="stat-dispositivos"><span class="stat-value">0</span><span class="stat-label">Celulares</span></div>
+    <div class="stat-item" id="stat-alertas"><span class="stat-value">0</span><span class="stat-label">Alertas</span></div>
+    <div class="stat-item" id="stat-drones"><span class="stat-value">0</span><span class="stat-label">Drones</span></div>
+  </div>
+  <div class="header-actions">
+    <span class="connection-status" id="connection-status">● Conectando...</span>
+    <button class="btn-icon" onclick="location.reload()" title="Recargar">🔄</button>
+  </div>
 </header>
+
 <div class="main-container">
-<aside class="sidebar-left">
-<div class="panel panel-gendarmes">
-<div class="panel-header"><h3>👮 Gendarmes</h3><span class="badge" id="gendarmes-count">0</span></div>
-<div class="panel-body" id="gendarmes-list"><div class="loading">Cargando...</div></div>
+  <!-- SIDEBAR IZQUIERDA -->
+  <aside class="sidebar-left">
+    <div class="panel panel-gendarmes">
+      <div class="panel-header"><h3>👮 Gendarmes</h3><span class="badge" id="gendarmes-count">0</span></div>
+      <div class="panel-body" id="gendarmes-list"><div class="loading">Cargando...</div></div>
+    </div>
+    <div class="panel panel-dispositivos">
+      <div class="panel-header"><h3>📱 Celulares</h3><span class="badge badge-danger" id="dispositivos-count">0</span></div>
+      <div class="panel-body" id="dispositivos-list"><div class="loading">Cargando...</div></div>
+    </div>
+    <div class="panel panel-drones">
+      <div class="panel-header"><h3>🚁 Drones</h3><span class="badge badge-info" id="drones-count">0</span></div>
+      <div class="panel-body" id="drones-list"><div class="loading">Cargando...</div></div>
+    </div>
+  </aside>
+
+  <!-- MAPA -->
+  <main class="map-container">
+    <div class="map-toolbar">
+      <div class="toolbar-left">
+        <button id="btn-vista-nacional" class="btn-back" style="display:none">← Volver</button>
+        <select id="recinto-select" class="form-select"><option value="">🇨🇱 Todos</option></select>
+        <span id="vista-indicator" class="vista-indicator nacional">🇨🇱 Vista Nacional</span>
+      </div>
+      <div class="toolbar-right">
+        <label class="toggle-label"><input type="checkbox" id="toggle-gendarmes" checked><span>👮</span></label>
+        <label class="toggle-label"><input type="checkbox" id="toggle-dispositivos" checked><span>📱</span></label>
+        <label class="toggle-label"><input type="checkbox" id="toggle-drones" checked><span>🚁</span></label>
+        <label class="toggle-label"><input type="checkbox" id="toggle-alertas" checked><span>🔔</span></label>
+        <label class="toggle-label"><input type="checkbox" id="toggle-zonas" checked><span>🏘️</span></label>
+        <label class="toggle-label"><input type="checkbox" id="toggle-heatmap"><span>🔥</span></label>
+      </div>
+    </div>
+    <div id="map"></div>
+  </main>
+
+  <!-- SIDEBAR DERECHA -->
+  <aside class="sidebar-right">
+    <div class="panel panel-alertas">
+      <div class="panel-header"><h3>🔔 Alertas</h3><span class="badge badge-danger" id="alertas-count">0</span></div>
+      <div class="panel-body" id="alertas-list"><div class="loading">Cargando...</div></div>
+    </div>
+    <div class="panel panel-stats">
+      <div class="panel-header"><h3>📊 Estadísticas</h3></div>
+      <div class="panel-body">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-number" id="stat-gendarmes-activos">0</div><div class="stat-desc">Gendarmes Activos</div></div>
+          <div class="stat-card stat-warning"><div class="stat-number" id="stat-gendarmes-inactivos">0</div><div class="stat-desc">Sin Señal</div></div>
+          <div class="stat-card stat-danger"><div class="stat-number" id="stat-dispositivos-no-autorizados">0</div><div class="stat-desc">No Autorizados</div></div>
+          <div class="stat-card stat-info"><div class="stat-number" id="stat-drones-vuelo">0</div><div class="stat-desc">Drones en Vuelo</div></div>
+        </div>
+        <div style="margin-top:8px;">
+          <canvas id="alertasChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="panel panel-dron-control">
+      <div class="panel-header"><h3>🎮 Control Drones</h3></div>
+      <div class="panel-body">
+        <div class="dron-selector"><select id="dron-select" class="form-select" style="width:100%"><option value="">Seleccionar...</option></select></div>
+        <div class="dron-info">
+          <div class="dron-info-row"><span>Estado:</span><span id="dron-estado">-</span></div>
+          <div class="dron-info-row"><span>Batería:</span><span id="dron-bateria">-</span></div>
+          <div class="dron-info-row"><span>Altitud:</span><span id="dron-altitud">-</span></div>
+          <div class="dron-info-row"><span>Velocidad:</span><span id="dron-velocidad">-</span></div>
+        </div>
+        <div class="dron-buttons">
+          <button class="btn-dron btn-despegar" onclick="comandoDron('despegar')" disabled>🛫 Despegar</button>
+          <button class="btn-dron btn-aterrizar" onclick="comandoDron('aterrizar')" disabled>🛬 Aterrizar</button>
+          <button class="btn-dron btn-patrulla" onclick="comandoDron('iniciar_patrulla')" disabled>🔄 Patrullar</button>
+          <button class="btn-dron btn-regresar" onclick="comandoDron('regresar_base')" disabled>🏠 Regresar</button>
+          <button class="btn-dron btn-camara" onclick="comandoDron('activar_camara')" disabled>📷 Cámara</button>
+          <button class="btn-dron btn-lanzar" onclick="lanzarDronEmergencia()" disabled>🚀 Lanzar</button>
+        </div>
+      </div>
+    </div>
+  </aside>
 </div>
-<div class="panel panel-dispositivos">
-<div class="panel-header"><h3>📱 Celulares</h3><span class="badge badge-danger" id="dispositivos-count">0</span></div>
-<div class="panel-body" id="dispositivos-list"><div class="loading">Cargando...</div></div>
-</div>
-<div class="panel panel-drones">
-<div class="panel-header"><h3>🚁 Drones</h3><span class="badge badge-info" id="drones-count">0</span></div>
-<div class="panel-body" id="drones-list"><div class="loading">Cargando...</div></div>
-</div>
-</aside>
-<main class="map-container">
-<div class="map-toolbar">
-<div class="toolbar-left">
-<button id="btn-vista-nacional" class="btn-back" style="display:none">← Volver</button>
-<select id="recinto-select" class="form-select"><option value="">🇨🇱 Todos</option></select>
-<span id="vista-indicator" class="vista-indicator nacional">🇨🇱 Vista Nacional</span>
-</div>
-<div class="toolbar-right">
-<label class="toggle-label"><input type="checkbox" id="toggle-gendarmes" checked><span>👮</span></label>
-<label class="toggle-label"><input type="checkbox" id="toggle-dispositivos" checked><span>📱</span></label>
-<label class="toggle-label"><input type="checkbox" id="toggle-drones" checked><span>🚁</span></label>
-<label class="toggle-label"><input type="checkbox" id="toggle-alertas" checked><span>🔔</span></label>
-<label class="toggle-label"><input type="checkbox" id="toggle-zonas" checked><span>🏘️</span></label>
-</div>
-</div>
-<div id="map"></div>
-</main>
-<aside class="sidebar-right">
-<div class="panel panel-alertas">
-<div class="panel-header"><h3>🔔 Alertas</h3><span class="badge badge-danger" id="alertas-count">0</span></div>
-<div class="panel-body" id="alertas-list"><div class="loading">Cargando...</div></div>
-</div>
-<div class="panel panel-stats">
-<div class="panel-header"><h3>📊 Estadísticas</h3></div>
-<div class="panel-body">
-<div class="stats-grid">
-<div class="stat-card"><div class="stat-number" id="stat-gendarmes-activos">0</div><div class="stat-desc">Gendarmes Activos</div></div>
-<div class="stat-card stat-warning"><div class="stat-number" id="stat-gendarmes-inactivos">0</div><div class="stat-desc">Sin Señal</div></div>
-<div class="stat-card stat-danger"><div class="stat-number" id="stat-dispositivos-no-autorizados">0</div><div class="stat-desc">No Autorizados</div></div>
-<div class="stat-card stat-info"><div class="stat-number" id="stat-drones-vuelo">0</div><div class="stat-desc">Drones en Vuelo</div></div>
-</div>
-</div>
-</div>
-<div class="panel panel-dron-control">
-<div class="panel-header"><h3>🎮 Control Drones</h3></div>
-<div class="panel-body">
-<div class="dron-selector"><select id="dron-select" class="form-select" style="width:100%"><option value="">Seleccionar...</option></select></div>
-<div class="dron-info">
-<div class="dron-info-row"><span>Estado:</span><span id="dron-estado">-</span></div>
-<div class="dron-info-row"><span>Batería:</span><span id="dron-bateria">-</span></div>
-<div class="dron-info-row"><span>Altitud:</span><span id="dron-altitud">-</span></div>
-<div class="dron-info-row"><span>Velocidad:</span><span id="dron-velocidad">-</span></div>
-</div>
-<div class="dron-buttons">
-<button class="btn-dron btn-despegar" onclick="comandoDron('despegar')" disabled>🛫 Despegar</button>
-<button class="btn-dron btn-aterrizar" onclick="comandoDron('aterrizar')" disabled>🛬 Aterrizar</button>
-<button class="btn-dron btn-patrulla" onclick="comandoDron('iniciar_patrulla')" disabled>🔄 Patrullar</button>
-<button class="btn-dron btn-regresar" onclick="comandoDron('regresar_base')" disabled>🏠 Regresar</button>
-<button class="btn-dron btn-camara" onclick="comandoDron('activar_camara')" disabled>📷 Cámara</button>
-</div>
-</div>
-</div>
-</aside>
-</div>
+
+<!-- MOBILE -->
 <div class="mobile-bottom-bar" id="mobile-bottom-bar">
-<button onclick="toggleMobilePanel('gendarmes')" class="active" id="mbtn-gendarmes"><span>👮</span><span class="label">Gendarmes</span></button>
-<button onclick="toggleMobilePanel('dispositivos')" id="mbtn-dispositivos"><span>📱</span><span class="label">Celulares</span></button>
-<button onclick="toggleMobilePanel('drones')" id="mbtn-drones"><span>🚁</span><span class="label">Drones</span></button>
-<button onclick="toggleMobilePanel('alertas')" id="mbtn-alertas"><span>🔔</span><span class="label">Alertas</span></button>
-<button onclick="toggleMobilePanel('stats')" id="mbtn-stats"><span>📊</span><span class="label">Stats</span></button>
+  <button onclick="toggleMobilePanel('gendarmes')" class="active" id="mbtn-gendarmes"><span>👮</span><span class="label">Gendarmes</span></button>
+  <button onclick="toggleMobilePanel('dispositivos')" id="mbtn-dispositivos"><span>📱</span><span class="label">Celulares</span></button>
+  <button onclick="toggleMobilePanel('drones')" id="mbtn-drones"><span>🚁</span><span class="label">Drones</span></button>
+  <button onclick="toggleMobilePanel('alertas')" id="mbtn-alertas"><span>🔔</span><span class="label">Alertas</span></button>
+  <button onclick="toggleMobilePanel('stats')" id="mbtn-stats"><span>📊</span><span class="label">Stats</span></button>
 </div>
 <div class="mobile-panel-overlay" id="mobile-panel"></div>
+
+<!-- MODAL -->
 <div id="alerta-modal" class="modal hidden">
-<div class="modal-content">
-<div class="modal-header"><h3 id="modal-titulo">Alerta</h3><button class="btn-close" onclick="cerrarModal()">&times;</button></div>
-<div class="modal-body" id="modal-body"></div>
-<div class="modal-footer">
-<button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
-<button class="btn btn-primary" onclick="resolverAlerta()">✅ Resolver</button>
+  <div class="modal-content">
+    <div class="modal-header"><h3 id="modal-titulo">Alerta</h3><button class="btn-close" onclick="cerrarModal()">&times;</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+      <button class="btn btn-primary" onclick="resolverAlerta()">✅ Resolver</button>
+    </div>
+  </div>
 </div>
-</div>
-</div>
+
 <div id="toast-container"></div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-// ===== DATOS CÁRCELES =====
-var Dc={"metadata":{"fuente":"Gendarmería de Chile (GENCHI)","total_recintos":66,"total_regiones":16},"regiones":[{"nombre":"Región de Arica y Parinacota","recintos":[{"nombre":"CDP Arica","direccion":"Av. Santa María 2345, Arica","latitud":-18.478,"longitud":-70.321,"capacidad":600,"seguridad":"media"}]},{"nombre":"Región de Tarapacá","recintos":[{"nombre":"CDP Iquique","direccion":"Av. Arturo Prat 1234, Iquique","latitud":-20.214,"longitud":-70.152,"capacidad":800,"seguridad":"media"},{"nombre":"CDP Pozo Almonte","direccion":"Av. Comercio 567, Pozo Almonte","latitud":-20.256,"longitud":-69.786,"capacidad":150,"seguridad":"baja"}]},{"nombre":"Región de Antofagasta","recintos":[{"nombre":"CDP Antofagasta","direccion":"Av. Argentina 2345, Antofagasta","latitud":-23.651,"longitud":-70.398,"capacidad":900,"seguridad":"media"},{"nombre":"CDP Calama","direccion":"Av. Granaderos 1234, Calama","latitud":-22.462,"longitud":-68.928,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Tocopilla","direccion":"Av. 21 de Mayo 789, Tocopilla","latitud":-22.092,"longitud":-70.198,"capacidad":200,"seguridad":"baja"}]},{"nombre":"Región de Atacama","recintos":[{"nombre":"CDP Copiapó","direccion":"Av. Juan Martínez 1234, Copiapó","latitud":-27.367,"longitud":-70.332,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Vallenar","direccion":"Av. Ramírez 789, Vallenar","latitud":-28.575,"longitud":-70.759,"capacidad":250,"seguridad":"media"},{"nombre":"CDP Chañaral","direccion":"Av. Merino Jarpa 456, Chañaral","latitud":-26.345,"longitud":-70.620,"capacidad":120,"seguridad":"baja"}]},{"nombre":"Región de Coquimbo","recintos":[{"nombre":"CDP La Serena","direccion":"Av. Francisco de Aguirre 2345, La Serena","latitud":-29.903,"longitud":-71.250,"capacidad":600,"seguridad":"media"},{"nombre":"CDP Coquimbo","direccion":"Av. Costanera 1234, Coquimbo","latitud":-29.953,"longitud":-71.343,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Ovalle","direccion":"Av. Libertad 789, Ovalle","latitud":-30.598,"longitud":-71.200,"capacidad":300,"seguridad":"media"},{"nombre":"CDP Illapel","direccion":"Av. Constitución 456, Illapel","latitud":-31.633,"longitud":-71.170,"capacidad":150,"seguridad":"baja"}]},{"nombre":"Región de Valparaíso","recintos":[{"nombre":"CDP Valparaíso","direccion":"Av. Argentina 975, Cerro Cordillera, Valparaíso","latitud":-33.047,"longitud":-71.617,"capacidad":800,"seguridad":"media"},{"nombre":"CDP San Antonio","direccion":"Av. Barros Luco 2101, San Antonio","latitud":-33.593,"longitud":-71.613,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Viña del Mar","direccion":"Av. Libertad 1234, Viña del Mar","latitud":-33.025,"longitud":-71.552,"capacidad":350,"seguridad":"media"},{"nombre":"CDP Los Andes","direccion":"Av. Argentina 456, Los Andes","latitud":-32.834,"longitud":-70.598,"capacidad":200,"seguridad":"media"},{"nombre":"CDP San Felipe","direccion":"Av. Yungay 789, San Felipe","latitud":-32.750,"longitud":-70.725,"capacidad":180,"seguridad":"media"},{"nombre":"CDP Quillota","direccion":"Av. Condell 567, Quillota","latitud":-32.880,"longitud":-71.248,"capacidad":250,"seguridad":"media"},{"nombre":"CDP Quilpué","direccion":"Av. Blanco Encalada 890, Quilpué","latitud":-33.048,"longitud":-71.442,"capacidad":200,"seguridad":"media"},{"nombre":"CDP La Ligua","direccion":"Av. Prat 456, La Ligua","latitud":-32.452,"longitud":-71.231,"capacidad":120,"seguridad":"baja"}]},{"nombre":"Región Metropolitana","recintos":[{"nombre":"CDP Santiago Sur (Ex Penitenciaría de Santiago)","direccion":"Av. Pedro Montt 1600, Santiago Centro","latitud":-33.456,"longitud":-70.648,"capacidad":5000,"seguridad":"alta"},{"nombre":"CCP Colina I","direccion":"Ruta 5 Norte, Km 25, Colina","latitud":-33.202,"longitud":-70.675,"capacidad":1500,"seguridad":"alta"},{"nombre":"CCP Colina II","direccion":"Ruta 5 Norte, Km 28, Colina","latitud":-33.185,"longitud":-70.680,"capacidad":1200,"seguridad":"alta"},{"nombre":"CDP San Bernardo","direccion":"Av. Colón 1234, San Bernardo","latitud":-33.592,"longitud":-70.700,"capacidad":600,"seguridad":"media"},{"nombre":"CDP Puente Alto","direccion":"Av. Concha y Toro 2345, Puente Alto","latitud":-33.613,"longitud":-70.575,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Talagante","direccion":"Av. Balmaceda 890, Talagante","latitud":-33.664,"longitud":-70.930,"capacidad":300,"seguridad":"media"},{"nombre":"CDP Melipilla","direccion":"Av. Vicuña Mackenna 567, Melipilla","latitud":-33.686,"longitud":-71.215,"capacidad":250,"seguridad":"media"}]},{"nombre":"Región del Libertador General Bernardo O'Higgins","recintos":[{"nombre":"CDP Rancagua","direccion":"Av. Libertador O'Higgins 1234, Rancagua","latitud":-34.170,"longitud":-70.745,"capacidad":700,"seguridad":"media"},{"nombre":"CDP San Fernando","direccion":"Av. Manuel Rodríguez 789, San Fernando","latitud":-34.585,"longitud":-70.988,"capacidad":350,"seguridad":"media"},{"nombre":"CDP Santa Cruz","direccion":"Av. Errázuriz 456, Santa Cruz","latitud":-34.638,"longitud":-71.365,"capacidad":200,"seguridad":"media"},{"nombre":"CDP Rengo","direccion":"Av. Caupolicán 567, Rengo","latitud":-34.410,"longitud":-70.860,"capacidad":180,"seguridad":"baja"},{"nombre":"CDP Pichilemu","direccion":"Av. Agustín Urrutia 234, Pichilemu","latitud":-34.387,"longitud":-72.005,"capacidad":100,"seguridad":"baja"}]},{"nombre":"Región del Maule","recintos":[{"nombre":"CDP Talca","direccion":"Av. 2 Sur 1234, Talca","latitud":-35.427,"longitud":-71.655,"capacidad":800,"seguridad":"media"},{"nombre":"CDP Curicó","direccion":"Av. Alessandri 789, Curicó","latitud":-34.983,"longitud":-71.239,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Linares","direccion":"Av. Independencia 567, Linares","latitud":-35.847,"longitud":-71.593,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Constitución","direccion":"Av. Costanera 345, Constitución","latitud":-35.333,"longitud":-72.417,"capacidad":150,"seguridad":"baja"},{"nombre":"CDP Cauquenes","direccion":"Av. San Martín 456, Cauquenes","latitud":-35.967,"longitud":-72.317,"capacidad":200,"seguridad":"media"},{"nombre":"CDP Parral","direccion":"Av. Ignacio Carrera Pinto 234, Parral","latitud":-36.140,"longitud":-71.830,"capacidad":150,"seguridad":"baja"}]},{"nombre":"Región de Ñuble","recintos":[{"nombre":"CDP Chillán","direccion":"Av. O'Higgins 1234, Chillán","latitud":-36.607,"longitud":-72.103,"capacidad":600,"seguridad":"media"},{"nombre":"CDP San Carlos","direccion":"Av. Libertad 567, San Carlos","latitud":-36.425,"longitud":-71.958,"capacidad":200,"seguridad":"media"}]},{"nombre":"Región del Biobío","recintos":[{"nombre":"CDP Concepción (El Manzano)","direccion":"Camino a Penco s/n, Concepción","latitud":-36.827,"longitud":-73.050,"capacidad":1200,"seguridad":"alta"},{"nombre":"CCP Biobío","direccion":"Ruta 160, Km 12, San Pedro de la Paz","latitud":-36.840,"longitud":-73.100,"capacidad":800,"seguridad":"alta"},{"nombre":"CDP Talcahuano","direccion":"Av. Colón 1234, Talcahuano","latitud":-36.724,"longitud":-73.117,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Los Ángeles","direccion":"Av. Alemania 789, Los Ángeles","latitud":-37.470,"longitud":-72.350,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Lebu","direccion":"Av. Matta 456, Lebu","latitud":-37.608,"longitud":-73.653,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Arauco","direccion":"Av. Caupolicán 234, Arauco","latitud":-37.246,"longitud":-73.317,"capacidad":150,"seguridad":"baja"}]},{"nombre":"Región de La Araucanía","recintos":[{"nombre":"CDP Temuco","direccion":"Av. Alemania 567, Temuco","latitud":-38.735,"longitud":-72.590,"capacidad":700,"seguridad":"media"},{"nombre":"CDP Angol","direccion":"Av. O'Higgins 890, Angol","latitud":-37.800,"longitud":-72.710,"capacidad":300,"seguridad":"media"},{"nombre":"CDP Villarrica","direccion":"Av. Pedro de Valdivia 456, Villarrica","latitud":-39.280,"longitud":-72.227,"capacidad":150,"seguridad":"baja"},{"nombre":"CDP Lautaro","direccion":"Av. Manuel Rodríguez 234, Lautaro","latitud":-38.530,"longitud":-72.435,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Nueva Imperial","direccion":"Av. Prat 345, Nueva Imperial","latitud":-38.745,"longitud":-72.950,"capacidad":100,"seguridad":"baja"}]},{"nombre":"Región de Los Ríos","recintos":[{"nombre":"CDP Valdivia","direccion":"Av. España 1234, Valdivia","latitud":-39.814,"longitud":-73.246,"capacidad":500,"seguridad":"media"},{"nombre":"CDP La Unión","direccion":"Av. Ramírez 789, La Unión","latitud":-40.293,"longitud":-73.082,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Río Bueno","direccion":"Av. Balmaceda 234, Río Bueno","latitud":-40.335,"longitud":-72.955,"capacidad":100,"seguridad":"baja"}]},{"nombre":"Región de Los Lagos","recintos":[{"nombre":"CDP Puerto Montt","direccion":"Av. Diego Portales 1234, Puerto Montt","latitud":-41.472,"longitud":-72.939,"capacidad":600,"seguridad":"media"},{"nombre":"CDP Osorno","direccion":"Av. Mackenna 789, Osorno","latitud":-40.573,"longitud":-73.133,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Castro","direccion":"Av. Pedro Montt 456, Castro","latitud":-42.482,"longitud":-73.764,"capacidad":250,"seguridad":"media"},{"nombre":"CDP Ancud","direccion":"Av. Libertad 345, Ancud","latitud":-41.869,"longitud":-73.820,"capacidad":150,"seguridad":"baja"},{"nombre":"CDP Puerto Varas","direccion":"Av. Gramado 234, Puerto Varas","latitud":-41.318,"longitud":-72.985,"capacidad":120,"seguridad":"baja"}]},{"nombre":"Región de Aysén del General Carlos Ibáñez del Campo","recintos":[{"nombre":"CDP Coyhaique","direccion":"Av. Ogana 1234, Coyhaique","latitud":-45.571,"longitud":-72.068,"capacidad":300,"seguridad":"media"},{"nombre":"CDP Puerto Aysén","direccion":"Av. Eusebio Lillo 456, Puerto Aysén","latitud":-45.403,"longitud":-72.692,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Chile Chico","direccion":"Av. Bernardo O'Higgins 234, Chile Chico","latitud":-46.541,"longitud":-71.724,"capacidad":80,"seguridad":"baja"}]},{"nombre":"Región de Magallanes y de la Antártica Chilena","recintos":[{"nombre":"CDP Punta Arenas","direccion":"Av. Colón 1234, Punta Arenas","latitud":-53.163,"longitud":-70.911,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Puerto Natales","direccion":"Av. Pedro Montt 456, Puerto Natales","latitud":-51.726,"longitud":-72.506,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Porvenir","direccion":"Av. Croacia 234, Porvenir","latitud":-53.296,"longitud":-70.366,"capacidad":80,"seguridad":"baja"}]}]};
-idad(a.severidad);
-    item.innerHTML='<div class="alerta-icon">'+getTipoAlertaIcon(a.tipo)+'</div><div class="alerta-content"><div class="alerta-titulo">'+a.titulo+'</div><div class="alerta-desc">'+a.descripcion+'</div><div class="alerta-time">⏱️ '+formatDate(a.created_at)+'</div></div>';
-    item.onclick=function(){abrirModal(a.titulo,'<p>'+a.descripcion+'</p><p style="color:#666;font-size:12px;">📍 '+a.zona_nombre+'<br>🏛️ '+a.recinto_nombre+'<br>⏱️ '+formatDate(a.created_at)+'</p>',a.id);};
-    list.appendChild(item);
-  });
-}
-function actualizarStats(){
-  var totalG=STATE.gendarmes.length;
-  var activos=STATE.gendarmes.filter(function(g){return g.en_linea}).length;
-  var inactivos=totalG-activos;
-  var noAut=STATE.dispositivos.filter(function(d){return !d.es_autorizado}).length;
-  var dronesVuelo=STATE.drones.filter(function(d){return d.estado==='en_vuelo'||d.estado==='patrulla'}).length;
-  document.getElementById('stat-gendarmes-activos').textContent=activos;
-  document.getElementById('stat-gendarmes-inactivos').textContent=inactivos;
-  document.getElementById('stat-dispositivos-no-autorizados').textContent=noAut;
-  document.getElementById('stat-drones-vuelo').textContent=dronesVuelo;
-  document.getElementById('stat-recinto').querySelector('.stat-value').textContent=STATE.recintos.length;
-  document.getElementById('stat-gendarmes').querySelector('.stat-value').textContent=totalG;
-  document.getElementById('stat-dispositivos').querySelector('.stat-value').textContent=STATE.dispositivos.length;
-  document.getElementById('stat-alertas').querySelector('.stat-value').textContent=STATE.alertas.filter(function(a){return !a.resuelta}).length;
-  document.getElementById('stat-drones').querySelector('.stat-value').textContent=STATE.drones.length;
-}
-function seleccionarDron(dronId){
-  var dron=STATE.drones.find(function(d){return d.id===dronId});
-  if(!dron)return;
-  STATE.dronSeleccionado=dron;
-  document.getElementById('dron-select').value=dron.id;
-  document.getElementById('dron-estado').textContent=getEstadoDronIcon(dron.estado)+' '+dron.estado;
-  document.getElementById('dron-bateria').textContent=Math.round(dron.bateria)+'%';
-  document.getElementById('dron-altitud').textContent=Math.round(dron.altitud)+' m';
-  document.getElementById('dron-velocidad').textContent=Math.round(dron.velocidad)+' km/h';
-  var btns=document.querySelectorAll('.btn-dron');
-  btns.forEach(function(b){b.disabled=false;});
-}
-function comandoDron(comando){
-  if(!STATE.dronSeleccionado){mostrarToast('Selecciona un dron primero','media');return;}
-  var dron=STATE.dronSeleccionado;
-  var respuestas={despegar:'🛫 Dron despegando...',aterrizar:'🛬 Dron aterrizando...',iniciar_patrulla:'🔄 Dron iniciando patrulla...',regresar_base:'🏠 Dron regresando a base...',activar_camara:'📷 Cámara activada'};
-  mostrarToast(respuestas[comando]||'Comando enviado','media');
-  if(comando==='despegar'){dron.estado='en_vuelo';dron.altitud=30+Math.random()*20;dron.velocidad=10+Math.random()*15;}
-  if(comando==='aterrizar'){dron.estado='en_base';dron.altitud=0;dron.velocidad=0;}
-  if(comando==='iniciar_patrulla'){dron.estado='patrulla';dron.altitud=40+Math.random()*30;dron.velocidad=15+Math.random()*10;}
-  if(comando==='regresar_base'){dron.estado='regresando';dron.altitud=10+Math.random()*10;dron.velocidad=20+Math.random()*10;setTimeout(function(){dron.estado='en_base';dron.altitud=0;dron.velocidad=0;seleccionarDron(dron.id);dibujarDrones();renderizarDrones();},3000);}
-  if(comando==='activar_camara'){dron.camara_activa=!dron.camara_activa;mostrarToast(dron.camara_activa?'📷 Cámara activada':'📷 Cámara desactivada','media');}
-  seleccionarDron(dron.id);
-  dibujarDrones();
-  renderizarDrones();
-  actualizarStats();
-}
-document.getElementById('dron-select').addEventListener('change',function(e){if(e.target.value)seleccionarDron(e.target.value);else{STATE.dronSeleccionado=null;document.getElementById('dron-estado').textContent='-';document.getElementById('dron-bateria').textContent='-';document.getElementById('dron-altitud').textContent='-';document.getElementById('dron-velocidad').textContent='-';var btns=document.querySelectorAll('.btn-dron');btns.forEach(function(b){b.disabled=true;});}});
-function toggleMobilePanel(panel){
-  var overlay=document.getElementById('mobile-panel');
-  var btns=document.querySelectorAll('#mobile-bottom-bar button');
-  btns.forEach(function(b){b.classList.remove('active');});
-  document.getElementById('mbtn-'+panel).classList.add('active');
-  var panels={gendarmes:'<div class="panel"><div class="panel-header"><h3>👮 Gendarmes</h3><span class="badge" id="gendarmes-count-m">0</span></div><div class="panel-body" id="gendarmes-list-m"><div class="loading">Cargando...</div></div></div>',dispositivos:'<div class="panel"><div class="panel-header"><h3>📱 Celulares</h3><span class="badge badge-danger" id="dispositivos-count-m">0</span></div><div class="panel-body" id="dispositivos-list-m"><div class="loading">Cargando...</div></div></div>',drones:'<div class="panel"><div class="panel-header"><h3>🚁 Drones</h3><span class="badge badge-info" id="drones-count-m">0</span></div><div class="panel-body" id="drones-list-m"><div class="loading">Cargando...</div></div></div>',alertas:'<div class="panel"><div class="panel-header"><h3>🔔 Alertas</h3><span class="badge badge-danger" id="alertas-count-m">0</span></div><div class="panel-body" id="alertas-list-m"><div class="loading">Cargando...</div></div></div>',stats:'<div class="panel"><div class="panel-header"><h3>📊 Estadísticas</h3></div><div class="panel-body"><div class="stats-grid"><div class="stat-card"><div class="stat-number" id="stat-gendarmes-activos-m">0</div><div class="stat-desc">Gendarmes Activos</div></div><div class="stat-card stat-warning"><div class="stat-number" id="stat-gendarmes-inactivos-m">0</div><div class="stat-desc">Sin Señal</div></div><div class="stat-card stat-danger"><div class="stat-number" id="stat-dispositivos-no-autorizados-m">0</div><div class="stat-desc">No Autorizados</div></div><div class="stat-card stat-info"><div class="stat-number" id="stat-drones-vuelo-m">0</div><div class="stat-desc">Drones en Vuelo</div></div></div></div></div>'};
-  overlay.innerHTML=panels[panel]||'';
-  overlay.classList.add('show');
-  if(panel==='gendarmes'){document.getElementById('gendarmes-count-m').textContent=document.getElementById('gendarmes-count').textContent;document.getElementById('gendarmes-list-m').innerHTML=document.getElementById('gendarmes-list').innerHTML;}
-  if(panel==='dispositivos'){document.getElementById('dispositivos-count-m').textContent=document.getElementById('dispositivos-count').textContent;document.getElementById('dispositivos-list-m').innerHTML=document.getElementById('dispositivos-list').innerHTML;}
-  if(panel==='drones'){document.getElementById('drones-count-m').textContent=document.getElementById('drones-count').textContent;document.getElementById('drones-list-m').innerHTML=document.getElementById('drones-list').innerHTML;}
-  if(panel==='alertas'){document.getElementById('alertas-count-m').textContent=document.getElementById('alertas-count').textContent;document.getElementById('alertas-list-m').innerHTML=document.getElementById('alertas-list').innerHTML;}
-  if(panel==='stats'){document.getElementById('stat-gendarmes-activos-m').textContent=document.getElementById('stat-gendarmes-activos').textContent;document.getElementById('stat-gendarmes-inactivos-m').textContent=document.getElementById('stat-gendarmes-inactivos').textContent;document.getElementById('stat-dispositivos-no-autorizados-m').textContent=document.getElementById('stat-dispositivos-no-autorizados').textContent;document.getElementById('stat-drones-vuelo-m').textContent=document.getElementById('stat-drones-vuelo').textContent;}
-}
-// ===== INICIO =====
-function init(){
-  initData();
-  initMap();
-  renderizarGendarmes();
-  renderizarDispositivos();
-  renderizarDrones();
-  renderizarAlertas();
-  actualizarStats();
-  // Llenar selector de recintos
-  var select=document.getElementById('recinto-select');
-  STATE.recintos.forEach(function(r){
-    var opt=document.createElement('option');
-    opt.value=r.id;
-    opt.textContent='🏛️ '+r.nombre;
-    select.appendChild(opt);
-  });
-  // Llenar selector de drones
-  var dronSelect=document.getElementById('dron-select');
-  STATE.drones.forEach(function(d){
-    var opt=document.createElement('option');
-    opt.value=d.id;
-    opt.textContent=d.nombre+' ('+d.recinto_nombre+')';
-    dronSelect.appendChild(opt);
-  });
-}
-document.addEventListener('DOMContentLoaded',init);
-</script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/mapa.js"></script>
+<script src="js/paneles.js"></script>
+<script src="js/dashboard.js"></script>
 </body>
 </html>

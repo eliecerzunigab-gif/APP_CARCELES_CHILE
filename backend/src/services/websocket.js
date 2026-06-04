@@ -2,11 +2,138 @@ const { getDatabase } = require('../models/database');
 
 let ioInstance;
 
+// Funciones normalizadoras para estandarizar datos entre backend y frontend
+function normalizarRecinto(r) {
+  return {
+    id: r.id,
+    nombre: r.nombre,
+    region: r.region || '',
+    latitud: r.latitud,
+    longitud: r.longitud,
+    tipo: r.tipo || 'Complejo Penitenciario',
+    capacidad: r.capacidad || 0,
+    poblacion_actual: r.poblacion_actual || 0,
+    nivel_seguridad: r.nivel_seguridad || 'alta',
+    activo: r.activo !== 0
+  };
+}
+
+function normalizarGendarme(g) {
+  return {
+    id: g.id,
+    nombre: g.nombre || `Gendarme #${g.id}`,
+    rut: g.rut || '',
+    recinto_id: g.recinto_id,
+    recinto_nombre: g.recinto_nombre || '',
+    estado: g.estado || 'activo',
+    latitud: g.ultima_ubicacion_lat || g.latitud || 0,
+    longitud: g.ultima_ubicacion_lng || g.longitud || 0,
+    ultimo_heartbeat: g.ultimo_heartbeat || null,
+    bateria: g.bateria || 100,
+    zona_id: g.ultima_zona_id || null,
+    activo: g.activo !== 0
+  };
+}
+
+function normalizarDispositivo(d) {
+  return {
+    id: d.id,
+    imei: d.imei || '',
+    mac_address: d.mac_address || '',
+    fabricante: d.fabricante || 'Desconocido',
+    modelo: d.modelo || '',
+    intensidad_senal: d.senial_db ? Math.min(100, Math.max(0, (d.senial_db + 90) * 2.5)) : 50,
+    senial_db: d.senial_db || 0,
+    frecuencia_mhz: d.frecuencia_mhz || 0,
+    recinto_id: d.recinto_id,
+    recinto_nombre: d.recinto_nombre || '',
+    zona_id: d.zona_id || null,
+    latitud: d.latitud || 0,
+    longitud: d.longitud || 0,
+    autorizado: d.es_autorizado === 1,
+    bateria: d.bateria || Math.floor(Math.random() * 50) + 30,
+    ultima_deteccion: d.ultima_deteccion || null,
+    activo: d.es_activo !== 0
+  };
+}
+
+function normalizarDron(d) {
+  return {
+    id: d.id,
+    nombre: d.nombre || `Dron #${d.id}`,
+    recinto_id: d.recinto_id,
+    recinto_nombre: d.recinto_nombre || '',
+    estado: d.estado || 'en_tierra',
+    latitud: d.latitud || 0,
+    longitud: d.longitud || 0,
+    altitud: d.altitud || 0,
+    velocidad: d.velocidad || 0,
+    bateria: d.bateria || 100,
+    modelo: d.modelo || 'DJI Matrice 30T',
+    activo: d.activo !== 0
+  };
+}
+
+function normalizarAlerta(a) {
+  return {
+    id: a.id,
+    recinto_id: a.recinto_id,
+    recinto_nombre: a.recinto_nombre || '',
+    tipo: a.tipo || a.titulo || 'Alerta',
+    nivel: a.severidad === 'critica' ? 'alta' : a.severidad || 'media',
+    severidad: a.severidad || 'media',
+    descripcion: a.descripcion || '',
+    zona: a.zona_id ? `Zona ${a.zona_id}` : null,
+    zona_id: a.zona_id || null,
+    dispositivo_id: a.dispositivo_id || null,
+    dron_id: a.dron_id || null,
+    latitud: a.latitud || 0,
+    longitud: a.longitud || 0,
+    fecha: a.created_at || a.fecha || null,
+    resuelta: a.resuelta === 1,
+    fecha_resolucion: a.resuelta_en || null
+  };
+}
+
 function setupWebSocket(io) {
   ioInstance = io;
 
   io.on('connection', (socket) => {
     console.log(`🔌 Cliente conectado: ${socket.id}`);
+
+    // Enviar datos iniciales al conectar
+    try {
+      const db = getDatabase();
+      const recintos = db.prepare('SELECT * FROM recintos').all();
+      const gendarmes = db.prepare(`
+        SELECT g.*, r.nombre as recinto_nombre, r.latitud as recinto_lat, r.longitud as recinto_lng
+        FROM gendarmes g LEFT JOIN recintos r ON g.recinto_id = r.id
+      `).all();
+      const dispositivos = db.prepare(`
+        SELECT d.*, r.nombre as recinto_nombre 
+        FROM dispositivos_detectados d LEFT JOIN recintos r ON d.recinto_id = r.id
+        WHERE d.es_activo = 1
+      `).all();
+      const drones = db.prepare(`
+        SELECT d.*, r.nombre as recinto_nombre 
+        FROM drones d LEFT JOIN recintos r ON d.recinto_id = r.id
+      `).all();
+      const alertas = db.prepare(`
+        SELECT a.*, r.nombre as recinto_nombre 
+        FROM alertas a LEFT JOIN recintos r ON a.recinto_id = r.id
+        ORDER BY a.created_at DESC LIMIT 100
+      `).all();
+
+      socket.emit('datos_iniciales', {
+        recintos: recintos.map(normalizarRecinto),
+        gendarmes: gendarmes.map(normalizarGendarme),
+        dispositivos: dispositivos.map(normalizarDispositivo),
+        drones: drones.map(normalizarDron),
+        alertas: alertas.map(normalizarAlerta)
+      });
+    } catch (err) {
+      console.error('Error enviando datos iniciales:', err.message);
+    }
 
     // Unirse a sala de un recinto específico
     socket.on('join_recinto', (recintoId) => {

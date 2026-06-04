@@ -10,12 +10,12 @@ function startSimulation(io) {
   intervalos.forEach(i => clearInterval(i));
   intervalos = [];
 
-  // Simular heartbeats de gendarmes cada 10 segundos
+  // Simular heartbeats de gendarmes cada 5 segundos
   const gendarmeInterval = setInterval(() => {
     try {
       const db = getDatabase();
       const gendarmes = db.prepare(
-        "SELECT id, recinto_id, ultima_ubicacion_lat, ultima_ubicacion_lng FROM gendarmes WHERE activo = 1"
+        "SELECT id, recinto_id, ultima_ubicacion_lat, ultima_ubicacion_lng, estado FROM gendarmes WHERE activo = 1"
       ).all();
 
       gendarmes.forEach(g => {
@@ -40,10 +40,32 @@ function startSimulation(io) {
           });
         }
       });
+
+      // Emitir actualización completa de gendarmes cada 10 segundos
+      if (Math.random() < 0.5) {
+        const todosGendarmes = db.prepare(`
+          SELECT g.*, r.nombre as recinto_nombre 
+          FROM gendarmes g LEFT JOIN recintos r ON g.recinto_id = r.id
+          WHERE g.activo = 1
+        `).all();
+        if (io) {
+          io.emit('actualizacion_gendarmes', todosGendarmes.map(g => ({
+            id: g.id,
+            nombre: g.nombre || `Gendarme #${g.id}`,
+            recinto_id: g.recinto_id,
+            recinto_nombre: g.recinto_nombre || '',
+            estado: g.estado || 'activo',
+            latitud: g.ultima_ubicacion_lat || 0,
+            longitud: g.ultima_ubicacion_lng || 0,
+            ultimo_heartbeat: g.ultimo_heartbeat || null,
+            bateria: g.bateria || 100
+          })));
+        }
+      }
     } catch (err) {
       // Silenciar errores de simulación
     }
-  }, 10000);
+  }, 5000);
   intervalos.push(gendarmeInterval);
 
   // Simular detección de dispositivos cada 30 segundos

@@ -3,12 +3,22 @@
 // ============================================
 
 const CONFIG = {
-  // API URL - auto detecta si está en producción o desarrollo
+  // Detectar si estamos en GitHub Pages (modo standalone sin backend)
+  get ES_GITHUB_PAGES() {
+    return window.location.hostname.includes('github.io') || 
+           window.location.hostname.includes('pages.dev') ||
+           window.location.hostname === 'eliecerzunigab-gif.github.io';
+  },
+
+  // API URL - auto detecta según el entorno
   get API_URL() {
+    if (this.ES_GITHUB_PAGES) {
+      return null; // Sin backend en GitHub Pages
+    }
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:3000';
     }
-    // En producción (GitHub Pages, etc.), asume que el backend está en Render
+    // En producción con backend
     return 'https://app-carceles-chile.onrender.com';
   },
 

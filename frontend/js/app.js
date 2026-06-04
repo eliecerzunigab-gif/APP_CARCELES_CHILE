@@ -22,8 +22,16 @@ const STATE = {
 
 // ========== INICIALIZACIÓN ==========
 document.addEventListener('DOMContentLoaded', () => {
-  initSocket();
-  cargarRecintos();
+  if (CONFIG.ES_GITHUB_PAGES) {
+    // Modo GitHub Pages - usar datos simulados
+    console.log('🌐 Modo GitHub Pages - usando datos simulados');
+    updateConnectionStatus('connected', '● Datos simulados');
+    cargarDatosSimulados();
+  } else {
+    // Modo normal con backend
+    initSocket();
+    cargarRecintos();
+  }
   setupEventListeners();
 });
 
@@ -391,6 +399,68 @@ function toggleMobilePanel(tipo) {
       </div>`;
       break;
   }
+}
+
+// ========== DATOS SIMULADOS (GitHub Pages) ==========
+function cargarDatosSimulados() {
+  STATE.recintos = DATOS_SIMULADOS.recintos;
+  STATE.gendarmes = DATOS_SIMULADOS.gendarmes;
+  STATE.dispositivos = DATOS_SIMULADOS.dispositivos;
+  STATE.drones = DATOS_SIMULADOS.drones;
+  STATE.alertas = DATOS_SIMULADOS.alertas;
+  actualizarTodo();
+  console.log('✅ Datos simulados cargados');
+
+  // Simular movimiento de gendarmes cada 5s
+  setInterval(() => {
+    STATE.gendarmes.forEach(g => {
+      g.latitud += (Math.random() - 0.5) * 0.0005;
+      g.longitud += (Math.random() - 0.5) * 0.0005;
+    });
+    actualizarGendarmes();
+    actualizarMapa();
+  }, 5000);
+
+  // Simular movimiento de drones cada 3s
+  setInterval(() => {
+    STATE.drones.forEach(d => {
+      if (d.estado === 'en_vuelo' || d.estado === 'patrullando') {
+        d.latitud += (Math.random() - 0.5) * 0.001;
+        d.longitud += (Math.random() - 0.5) * 0.001;
+        d.bateria = Math.max(0, d.bateria - Math.random() * 0.3);
+      }
+    });
+    actualizarDrones();
+    actualizarMapa();
+  }, 3000);
+
+  // Simular nuevas alertas cada 30s
+  setInterval(() => {
+    const tipos = ['📱 Celular no autorizado', '⚠️ Movimiento sospechoso', '🔴 Intento de fuga'];
+    const recinto = STATE.recintos[Math.floor(Math.random() * STATE.recintos.length)];
+    const nuevaAlerta = {
+      id: Date.now(),
+      recinto_id: recinto.id,
+      recinto_nombre: recinto.nombre,
+      tipo: tipos[Math.floor(Math.random() * tipos.length)],
+      nivel: Math.random() > 0.6 ? 'alta' : 'media',
+      descripcion: `Evento detectado en ${recinto.nombre}`,
+      zona: `Zona ${String.fromCharCode(65 + Math.floor(Math.random() * 5))}`,
+      latitud: recinto.latitud + (Math.random() - 0.5) * 0.002,
+      longitud: recinto.longitud + (Math.random() - 0.5) * 0.002,
+      fecha: new Date().toISOString(),
+      resuelta: false
+    };
+    STATE.alertas.unshift(nuevaAlerta);
+    if (STATE.alertas.length > 100) STATE.alertas.pop();
+    mostrarAlertaToast(nuevaAlerta);
+    actualizarAlertas();
+    actualizarHeaderStats();
+    actualizarDashboard();
+    if (STATE.sonidoActivo && nuevaAlerta.nivel === 'alta') {
+      reproducirAlertaSonido();
+    }
+  }, 30000);
 }
 
 // ========== EXPORTAR FUNCIONES GLOBALES ==========

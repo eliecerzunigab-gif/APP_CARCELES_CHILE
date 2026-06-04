@@ -70,15 +70,30 @@ function initMap() {
   console.log('🗺️ Mapa inicializado correctamente');
 }
 
-// Inicializar el mapa automáticamente cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  // Inicializar el mapa de inmediato para que esté listo cuando se carguen los datos
-  setTimeout(() => {
-    if (!map) {
-      initMap();
+// Inicializar el mapa - se llama explícitamente desde app.js
+function inicializarMapa() {
+  return new Promise((resolve) => {
+    if (map) {
+      resolve(map);
+      return;
     }
-  }, 100);
-});
+    const checkExist = setInterval(() => {
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) {
+        clearInterval(checkExist);
+        initMap();
+        // Esperar a que el mapa termine de inicializarse
+        setTimeout(() => resolve(map), 300);
+      }
+    }, 50);
+    // Timeout de seguridad
+    setTimeout(() => {
+      clearInterval(checkExist);
+      if (!map) initMap();
+      resolve(map);
+    }, 3000);
+  });
+}
 
 // ========== ACTUALIZAR MAPA ==========
 function actualizarMapa() {

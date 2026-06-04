@@ -21,7 +21,17 @@ const STATE = {
 };
 
 // ========== INICIALIZACIÓN ==========
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🚀 Inicializando SISGEN...');
+  
+  // 1. Inicializar el mapa primero (esperar a que esté listo)
+  await inicializarMapa();
+  console.log('🗺️ Mapa listo');
+  
+  // 2. Configurar eventos
+  setupEventListeners();
+  
+  // 3. Cargar datos
   if (CONFIG.ES_GITHUB_PAGES) {
     // Modo GitHub Pages - usar datos simulados
     console.log('🌐 Modo GitHub Pages - usando datos simulados');
@@ -32,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initSocket();
     cargarRecintos();
   }
-  setupEventListeners();
 });
 
 // ========== SOCKET.IO ==========

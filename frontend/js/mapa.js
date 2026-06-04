@@ -66,34 +66,43 @@ function initMap() {
 function actualizarMapa() {
   if (!map) initMap();
   limpiarCapas();
-  const mostrarGendarmes = document.getElementById('toggle-gendarmes').checked;
-  const mostrarDispositivos = document.getElementById('toggle-dispositivos').checked;
-  const mostrarDrones = document.getElementById('toggle-drones').checked;
-  const mostrarAlertas = document.getElementById('toggle-alertas').checked;
-  const mostrarZonas = document.getElementById('toggle-zonas').checked;
+  
+  // Leer estado de toggles (por defecto true si no existen)
+  const mostrarGendarmes = document.getElementById('toggle-gendarmes')?.checked ?? true;
+  const mostrarDispositivos = document.getElementById('toggle-dispositivos')?.checked ?? true;
+  const mostrarDrones = document.getElementById('toggle-drones')?.checked ?? true;
+  const mostrarAlertas = document.getElementById('toggle-alertas')?.checked ?? true;
+  const mostrarZonas = document.getElementById('toggle-zonas')?.checked ?? true;
 
   if (STATE.recintoActual) {
     const r = STATE.recintoActual;
-    // 1. Primero hacer zoom al recinto con animación
+    
+    // 1. Iniciar animación de zoom al recinto
     map.flyTo([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO, {
       duration: 1.5,
       easeLinearity: 0.25
     });
-    // 2. Agregar marcadores después de un breve delay para que la animación se vea
-    setTimeout(() => {
+    
+    // 2. Agregar marcadores después de que termine la animación (1.5s + buffer)
+    // Usar setTimeout en lugar de evento moveend que puede fallar
+    if (window._flyToTimeout) clearTimeout(window._flyToTimeout);
+    window._flyToTimeout = setTimeout(() => {
       if (mostrarZonas) mostrarZonasRecinto(r);
       if (mostrarGendarmes) mostrarGendarmesRecinto(r);
       if (mostrarDispositivos) mostrarDispositivosRecinto(r);
       if (mostrarDrones) mostrarDronesRecinto(r);
       if (mostrarAlertas) mostrarAlertasRecinto(r);
-    }, 100);
+      window._flyToTimeout = null;
+    }, 1600); // 1.5s de animación + 100ms buffer
+    
   } else {
-    // Vista nacional - mostrar todo primero, luego hacer zoom out
+    // Vista nacional - mostrar todo primero
     if (mostrarGendarmes) mostrarGendarmesNacional();
     if (mostrarDispositivos) mostrarDispositivosNacional();
     if (mostrarDrones) mostrarDronesNacional();
     if (mostrarAlertas) mostrarAlertasNacional();
     if (mostrarZonas) mostrarRecintosNacional();
+    
     // Zoom out con animación
     map.flyTo(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL, {
       duration: 1.5,

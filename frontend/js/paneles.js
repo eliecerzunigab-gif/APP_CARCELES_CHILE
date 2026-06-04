@@ -159,6 +159,13 @@ function mostrarDetalleAlerta(id) {
 // ========== CENTRAR MAPA ==========
 function centrarMapa(lat, lng) {
   if (map) {
-    map.setView([lat, lng], 17);
+    map.flyTo([lat, lng], 17, {
+      duration: 0.8,
+      easeLinearity: 0.25
+    });
   }
 }
+
+// ========== EXPORTAR FUNCIONES GLOBALES ==========
+window.centrarMapa = centrarMapa;
+window.actualizarMapa = actualizarMapa;

@@ -110,15 +110,18 @@ function actualizarMapa() {
       return;
     }
     
-    // Mostrar marcadores del recinto INMEDIATAMENTE
+    // Mostrar marcadores del recinto PRIMERO
     if (mostrarZonas) mostrarZonasRecinto(r);
     if (mostrarGendarmes) mostrarGendarmesRecinto(r);
     if (mostrarDispositivos) mostrarDispositivosRecinto(r);
     if (mostrarDrones) mostrarDronesRecinto(r);
     if (mostrarAlertas) mostrarAlertasRecinto(r);
     
-    // Navegar al recinto - usar setView primero para ir instantáneo, luego flyTo para animación
-    map.setView([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO);
+    // Navegar al recinto con animación suave (flyTo en vez de setView)
+    map.flyTo([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO, {
+      duration: 1.5,
+      easeLinearity: 0.25
+    });
     
   } else {
     // Vista nacional - mostrar todo primero
@@ -128,8 +131,11 @@ function actualizarMapa() {
     if (mostrarAlertas) mostrarAlertasNacional();
     if (mostrarZonas) mostrarRecintosNacional();
     
-    // Zoom out
-    map.setView(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL);
+    // Zoom out con animación suave
+    map.flyTo(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL, {
+      duration: 1.0,
+      easeLinearity: 0.25
+    });
   }
 }
 
@@ -300,6 +306,7 @@ function crearIconoDron(d) {
 
 function crearPopupDron(d) {
   const recinto = STATE.recintos.find(r => r.id == d.recinto_id);
+  const enVuelo = d.estado === 'en_vuelo' || d.estado === 'patrullando';
   return `<div class="popup-content">
     <h4>🚁 ${d.nombre || 'Dron #' + d.id}</h4>
     <p>📍 ${recinto ? recinto.nombre : 'Desconocido'}</p>

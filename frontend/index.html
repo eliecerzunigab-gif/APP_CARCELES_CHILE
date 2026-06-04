@@ -7,9 +7,18 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
+  <style>
+    .marker-icon { background: transparent !important; border: none !important; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    @media (max-width: 768px) {
+      .sidebar-left, .sidebar-right { display: none; }
+      .header-stats { display: none; }
+      .map-toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar-right { justify-content: center; }
+    }
+  </style>
 </head>
 <body>
-  <!-- Barra Superior -->
   <header class="top-bar">
     <div class="logo">
       <span class="logo-icon">🇨🇱</span>
@@ -19,165 +28,75 @@
       </div>
     </div>
     <div class="header-stats">
-      <div class="stat-item" id="stat-recinto">
-        <span class="stat-value">0</span>
-        <span class="stat-label">Recintos</span>
-      </div>
-      <div class="stat-item" id="stat-gendarmes">
-        <span class="stat-value">0</span>
-        <span class="stat-label">Gendarmes</span>
-      </div>
-      <div class="stat-item" id="stat-dispositivos">
-        <span class="stat-value">0</span>
-        <span class="stat-label">Celulares</span>
-      </div>
-      <div class="stat-item" id="stat-alertas">
-        <span class="stat-value">0</span>
-        <span class="stat-label">Alertas</span>
-      </div>
-      <div class="stat-item" id="stat-drones">
-        <span class="stat-value">0</span>
-        <span class="stat-label">Drones</span>
-      </div>
+      <div class="stat-item" id="stat-recinto"><span class="stat-value">0</span><span class="stat-label">Recintos</span></div>
+      <div class="stat-item" id="stat-gendarmes"><span class="stat-value">0</span><span class="stat-label">Gendarmes</span></div>
+      <div class="stat-item" id="stat-dispositivos"><span class="stat-value">0</span><span class="stat-label">Celulares</span></div>
+      <div class="stat-item" id="stat-alertas"><span class="stat-value">0</span><span class="stat-label">Alertas</span></div>
+      <div class="stat-item" id="stat-drones"><span class="stat-value">0</span><span class="stat-label">Drones</span></div>
     </div>
     <div class="header-actions">
-      <span class="connection-status" id="connection-status">● Conectando...</span>
+      <span class="connection-status" id="connection-status">● Estático</span>
+      <a href="../" style="background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;" title="Volver al inicio">🏠</a>
       <button class="btn-icon" onclick="window.location.reload()" title="Recargar">🔄</button>
     </div>
   </header>
-
-  <!-- Contenedor Principal -->
   <div class="main-container">
-    <!-- Panel Lateral Izquierdo -->
     <aside class="sidebar-left">
-      <!-- Panel de Gendarmes -->
       <div class="panel panel-gendarmes">
-        <div class="panel-header">
-          <h3>👮 Gendarmes en Línea</h3>
-          <span class="badge" id="gendarmes-count">0</span>
-        </div>
-        <div class="panel-body" id="gendarmes-list">
-          <div class="loading">Cargando...</div>
-        </div>
+        <div class="panel-header"><h3>👮 Gendarmes en Línea</h3><span class="badge" id="gendarmes-count">0</span></div>
+        <div class="panel-body" id="gendarmes-list"><div class="loading">Cargando...</div></div>
       </div>
-
-      <!-- Panel de Dispositivos Detectados -->
       <div class="panel panel-dispositivos">
-        <div class="panel-header">
-          <h3>📱 Celulares Detectados</h3>
-          <span class="badge badge-danger" id="dispositivos-count">0</span>
-        </div>
-        <div class="panel-body" id="dispositivos-list">
-          <div class="loading">Cargando...</div>
-        </div>
+        <div class="panel-header"><h3>📱 Celulares Detectados</h3><span class="badge badge-danger" id="dispositivos-count">0</span></div>
+        <div class="panel-body" id="dispositivos-list"><div class="loading">Cargando...</div></div>
       </div>
-
-      <!-- Panel de Drones -->
       <div class="panel panel-drones">
-        <div class="panel-header">
-          <h3>🚁 Drones</h3>
-          <span class="badge badge-info" id="drones-count">0</span>
-        </div>
-        <div class="panel-body" id="drones-list">
-          <div class="loading">Cargando...</div>
-        </div>
+        <div class="panel-header"><h3>🚁 Drones</h3><span class="badge badge-info" id="drones-count">0</span></div>
+        <div class="panel-body" id="drones-list"><div class="loading">Cargando...</div></div>
       </div>
     </aside>
-
-    <!-- Mapa Central -->
     <main class="map-container">
       <div class="map-toolbar">
         <div class="toolbar-left">
-          <button id="btn-vista-nacional" class="btn-back" style="display:none;" title="Volver a vista nacional">
-            ← Volver
-          </button>
-          <select id="recinto-select" class="form-select">
-            <option value="">🇨🇱 Todos los recintos</option>
-          </select>
+          <button id="btn-vista-nacional" class="btn-back" style="display:none;" title="Volver a vista nacional">← Volver</button>
+          <select id="recinto-select" class="form-select"><option value="">🇨🇱 Todos los recintos</option></select>
           <span id="vista-indicator" class="vista-indicator nacional">🇨🇱 Vista Nacional - Todos los recintos</span>
         </div>
         <div class="toolbar-right">
-          <label class="toggle-label">
-            <input type="checkbox" id="toggle-gendarmes" checked>
-            <span>👮 Gendarmes</span>
-          </label>
-          <label class="toggle-label">
-            <input type="checkbox" id="toggle-dispositivos" checked>
-            <span>📱 Celulares</span>
-          </label>
-          <label class="toggle-label">
-            <input type="checkbox" id="toggle-drones" checked>
-            <span>🚁 Drones</span>
-          </label>
-          <label class="toggle-label">
-            <input type="checkbox" id="toggle-alertas" checked>
-            <span>🔔 Alertas</span>
-          </label>
-          <label class="toggle-label">
-            <input type="checkbox" id="toggle-zonas" checked>
-            <span>🏘️ Zonas</span>
-          </label>
+          <label class="toggle-label"><input type="checkbox" id="toggle-gendarmes" checked><span>👮 Gendarmes</span></label>
+          <label class="toggle-label"><input type="checkbox" id="toggle-dispositivos" checked><span>📱 Celulares</span></label>
+          <label class="toggle-label"><input type="checkbox" id="toggle-drones" checked><span>🚁 Drones</span></label>
+          <label class="toggle-label"><input type="checkbox" id="toggle-alertas" checked><span>🔔 Alertas</span></label>
+          <label class="toggle-label"><input type="checkbox" id="toggle-zonas" checked><span>🏘️ Zonas</span></label>
         </div>
       </div>
       <div id="map"></div>
     </main>
-
-    <!-- Panel Lateral Derecho -->
     <aside class="sidebar-right">
-      <!-- Panel de Alertas -->
       <div class="panel panel-alertas">
-        <div class="panel-header">
-          <h3>🔔 Alertas Activas</h3>
-          <span class="badge badge-danger" id="alertas-count">0</span>
-        </div>
-        <div class="panel-body" id="alertas-list">
-          <div class="loading">Cargando...</div>
-        </div>
+        <div class="panel-header"><h3>🔔 Alertas Activas</h3><span class="badge badge-danger" id="alertas-count">0</span></div>
+        <div class="panel-body" id="alertas-list"><div class="loading">Cargando...</div></div>
       </div>
-
-      <!-- Panel de Estadísticas Rápidas -->
       <div class="panel panel-stats">
-        <div class="panel-header">
-          <h3>📊 Estadísticas</h3>
-        </div>
+        <div class="panel-header"><h3>📊 Estadísticas</h3></div>
         <div class="panel-body">
           <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-number" id="stat-gendarmes-activos">0</div>
-              <div class="stat-desc">Gendarmes Activos</div>
-            </div>
-            <div class="stat-card stat-warning">
-              <div class="stat-number" id="stat-gendarmes-inactivos">0</div>
-              <div class="stat-desc">Sin Señal</div>
-            </div>
-            <div class="stat-card stat-danger">
-              <div class="stat-number" id="stat-dispositivos-no-autorizados">0</div>
-              <div class="stat-desc">Celulares No Autorizados</div>
-            </div>
-            <div class="stat-card stat-info">
-              <div class="stat-number" id="stat-drones-vuelo">0</div>
-              <div class="stat-desc">Drones en Vuelo</div>
-            </div>
+            <div class="stat-card"><div class="stat-number" id="stat-gendarmes-activos">0</div><div class="stat-desc">Gendarmes Activos</div></div>
+            <div class="stat-card stat-warning"><div class="stat-number" id="stat-gendarmes-inactivos">0</div><div class="stat-desc">Sin Señal</div></div>
+            <div class="stat-card stat-danger"><div class="stat-number" id="stat-dispositivos-no-autorizados">0</div><div class="stat-desc">Celulares No Autorizados</div></div>
+            <div class="stat-card stat-info"><div class="stat-number" id="stat-drones-vuelo">0</div><div class="stat-desc">Drones en Vuelo</div></div>
           </div>
         </div>
       </div>
-
-      <!-- Panel de Control de Drones -->
       <div class="panel panel-dron-control">
-        <div class="panel-header">
-          <h3>🎮 Control de Drones</h3>
-        </div>
+        <div class="panel-header"><h3>🎮 Control de Drones</h3></div>
         <div class="panel-body" id="dron-control-panel">
-          <div class="dron-selector">
-            <select id="dron-select" class="form-select">
-              <option value="">Seleccionar dron...</option>
-            </select>
-          </div>
+          <div class="dron-selector"><select id="dron-select" class="form-select"><option value="">Seleccionar dron...</option></select></div>
           <div class="dron-info" id="dron-info">
-            <div class="dron-info-row"><span>Estado:</span> <span id="dron-estado">-</span></div>
-            <div class="dron-info-row"><span>Batería:</span> <span id="dron-bateria">-</span></div>
-            <div class="dron-info-row"><span>Altitud:</span> <span id="dron-altitud">-</span></div>
-            <div class="dron-info-row"><span>Velocidad:</span> <span id="dron-velocidad">-</span></div>
+            <div class="dron-info-row"><span>Estado:</span><span id="dron-estado">-</span></div>
+            <div class="dron-info-row"><span>Batería:</span><span id="dron-bateria">-</span></div>
+            <div class="dron-info-row"><span>Altitud:</span><span id="dron-altitud">-</span></div>
+            <div class="dron-info-row"><span>Velocidad:</span><span id="dron-velocidad">-</span></div>
           </div>
           <div class="dron-buttons">
             <button class="btn-dron btn-despegar" onclick="comandoDron('despegar')" disabled>🛫 Despegar</button>
@@ -190,31 +109,58 @@
       </div>
     </aside>
   </div>
-
-  <!-- Modal de Alerta -->
   <div id="alerta-modal" class="modal hidden">
     <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modal-titulo">Alerta</h3>
-        <button class="btn-close" onclick="cerrarModal()">&times;</button>
-      </div>
-      <div class="modal-body" id="modal-body">
-      </div>
+      <div class="modal-header"><h3 id="modal-titulo">Alerta</h3><button class="btn-close" onclick="cerrarModal()">&times;</button></div>
+      <div class="modal-body" id="modal-body"></div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
         <button class="btn btn-primary" onclick="resolverAlerta()">✅ Resolver Alerta</button>
       </div>
     </div>
   </div>
-
-  <!-- Notificación Toast -->
   <div id="toast-container"></div>
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/mapa.js"></script>
-  <script src="js/paneles.js"></script>
-  <script src="js/dashboard.js"></script>
+  <script>
+  const CONFIG={MAP_CENTER:[-33.4489,-70.6693],MAP_ZOOM:6,MAP_ZOOM_RECINTO:16,MAP_MAX_ZOOM:19,MAP_MIN_ZOOM:5};
+  const STATE={recintos:[],gendarmes:[],dispositivos:[],drones:[],alertas:[],zonas:[],markers:{gendarmes:{},dispositivos:{},drones:{},alertas:{},zonas:{},recintos:{}},layers:{gendarmes:null,dispositivos:null,drones:null,alertas:null,zonas:null,recintos:null,recintoPoligonos:null},map:null,currentAlertaId:null,dronSeleccionado:null,vistaActual:'nacional',recintoActivo:null};
+  function formatDate(d){if(!d)return'-';const date=new Date(d);const diff=Math.floor((Date.now()-date)/1000);if(diff<60)return'Ahora';if(diff<3600)return Math.floor(diff/60)+' min';if(diff<86400)return Math.floor(diff/3600)+'h';return date.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
+  function getSeveridadClass(s){return{critica:'critica',alta:'alta',media:'media',baja:'baja'}[s]||'media';}
+  function getEstadoDronClass(e){return{en_base:'online',en_vuelo:'online',despegando:'warning',regresando:'warning',patrulla:'online',cargando:'warning',mantenimiento:'offline',perdido:'offline'}[e]||'offline';}
+  function getEstadoDronIcon(e){return{en_base:'🅿️',en_vuelo:'✈️',despegando:'🛫',regresando:'🛬',patrulla:'🔄',cargando:'🔋',mantenimiento:'🔧',perdido:'❌'}[e]||'🚁';}
+  function getTipoAlertaIcon(t){return{celular_no_autorizado:'📱',gendarme_inactivo:'👮⚠️',dron_detectado:'🚁',movimiento_sospechoso:'👤',puerta_abierta:'🚪',alarma_general:'🔔',dron_bateria_baja:'🔋⚠️',dron_perdido:'🚁❌'}[t]||'🔔';}
+  function mostrarToast(msg,sev){const c=document.getElementById('toast-container');const t=document.createElement('div');t.className='toast '+getSeveridadClass(sev||'media');t.innerHTML=msg;c.appendChild(t);setTimeout(()=>{t.classList.add('fade-out');setTimeout(()=>t.remove(),300);},5000);}
+  function abrirModal(titulo,contenido,alertaId){document.getElementById('modal-titulo').textContent=titulo;document.getElementById('modal-body').innerHTML=contenido;document.getElementById('alerta-modal').classList.remove('hidden');STATE.currentAlertaId=alertaId;}
+  function cerrarModal(){document.getElementById('alerta-modal').classList.add('hidden');STATE.currentAlertaId=null;}
+  function resolverAlerta(){if(STATE.currentAlertaId){STATE.alertas=STATE.alertas.filter(a=>a.id!==STATE.currentAlertaId);renderizarAlertas();actualizarStats();mostrarToast('✅ Alerta resuelta','baja');}cerrarModal();}
+  document.addEventListener('keydown',(e)=>{if(e.key==='Escape')cerrarModal();});
+  async function cargarDatos(){try{const res=await fetch('../backend/data/carceles_chile.json');const data=await res.json();STATE.recintos=[];data.regiones.forEach(r=>{r.recintos.forEach(rec=>{STATE.recintos.push({...rec,id:rec.nombre.replace(/[^a-zA-Z0-9]/g,'_'),region:r.nombre});});});generarDatosSimulados();initMap();actualizarUI();return true;}catch(err){console.error('Error cargando datos:',err);document.getElementById('gendarmes-list').innerHTML='<div class="loading" style="color:var(--danger)">Error al cargar datos</div>';return false;}}
+  function generarDatosSimulados(){const nombres=['Carlos Muñoz','María González','José Rodríguez','Ana Martínez','Luis Pérez','Patricia López','Andrés Silva','Rosa Morales','Diego Vargas','Carmen Rojas','Francisco Soto','Laura Castillo','Manuel Reyes','Sandra Torres','Jorge Herrera','Verónica Castro','Ricardo Ortiz','Daniela Flores','Eduardo Gómez','Paola Medina','Cristian Ruiz','Marcela Díaz','Felipe Álvarez','Angélica Romero','Sebastián Acosta'];const cargos=['Gendarme','Cabo','Sargento','Suboficial','Oficial'];const fabricantes=['Samsung','Xiaomi','Motorola','Huawei','Apple','LG'];const modelos=['Galaxy A54','Redmi Note 12','Moto G84','P60 Pro','iPhone 14','K62'];const tiposAlerta=['celular_no_autorizado','gendarme_inactivo','movimiento_sospechoso','puerta_abierta','dron_detectado'];const severidades=['critica','alta','media','baja'];const estadosDron=['en_base','en_vuelo','patrulla','cargando','mantenimiento'];STATE.gendarmes=[];STATE.dispositivos=[];STATE.drones=[];STATE.alertas=[];STATE.zonas=[];STATE.recintos.forEach((recinto,idx)=>{const zonasRecinto=[{id:recinto.id+'_z1',nombre:'Patio Principal',tipo:'patio',latitud:recinto.latitud+0.001,longitud:recinto.longitud+0.001,radio:30},{id:recinto.id+'_z2',nombre:'Módulo A',tipo:'celda',latitud:recinto.latitud-0.001,longitud:recinto.longitud-0.001,radio:20},{id:recinto.id+'_z3',nombre:'Acceso Principal',tipo:'acceso',latitud:recinto.latitud+0.002,longitud:recinto.longitud-0.001,radio:15},{id:recinto.id+'_z4',nombre:'Enfermería',tipo:'enfermeria',latitud:recinto.latitud-0.002,longitud:recinto.longitud+0.002,radio:15},{id:recinto.id+'_z5',nombre:'Perímetro Norte',tipo:'perimetro',latitud:recinto.latitud+0.003,longitud:recinto.longitud,radio:10}];STATE.zonas.push(...zonasRecinto);const numG=3+Math.floor(Math.random()*4);for(let i=0;i<numG;i++){const gIdx=(idx*6+i)%nombres.length;const[nom,ape]=nombres[gIdx].split(' ');const activo=Math.random()>0.2;const zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];STATE.gendarmes.push({id:recinto.id+'_g'+i,nombre:nom,apellido:ape,rut:Math.floor(1e7+Math.random()*2e7)+'-'+Math.floor(Math.random()*9)+'k',cargo:cargos[Math.floor(Math.random()*cargos.length)],recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,ultima_ubicacion_lat:zona.latitud+(Math.random()-0.5)*0.002,ultima_ubicacion_lng:zona.longitud+(Math.random()-0.5)*0.002,ultimo_heartbeat:new Date(Date.now()-Math.random()*300000).toISOString(),en_linea:activo?1:0});}
+  const numD=1+Math.floor(Math.random()*3);for(let i=0;i<numD;i++){const fIdx=Math.floor(Math.random()*fabricantes.length);const noAut=Math.random()>0.6;const zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];STATE.dispositivos.push({id:recinto.id+'_d'+i,fabricante:fabricantes[fIdx],modelo:modelos[fIdx],tipo_dispositivo:'celular',es_autorizado:noAut?0:1,recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,latitud:zona.latitud+(Math.random()-0.5)*0.003,longitud:zona.longitud+(Math.random()-0.5)*0.003,senial_db:-40-Math.random()*40,ultima_deteccion:new Date(Date.now()-Math.random()*600000).toISOString()});}
+  const numDr=1+Math.floor(Math.random()*2);for(let i=0;i<numDr;i++){const est=estadosDron[Math.floor(Math.random()*estadosDron.length)];const enVuelo=est==='en_vuelo'||est==='patrulla';STATE.drones.push({id:recinto.id+'_dr'+i,nombre:'Dron-'+recinto.nombre.substring(0,3).toUpperCase()+'-'+(i+1),modelo:'DJI Matrice 30T',recinto_id:recinto.id,recinto_nombre:recinto.nombre,estado:est,bateria:20+Math.random()*80,altitud:enVuelo?20+Math.random()*80:0,velocidad:enVuelo?5+Math.random()*25:0,latitud:enVuelo?recinto.latitud+(Math.random()-0.5)*0.01:recinto.latitud,longitud:enVuelo?recinto.longitud+(Math.random()-0.5)*0.01:recinto.longitud,modo_vuelo:enVuelo?'automático':'manual',camara_activa:enVuelo?Math.random()>0.3:false});}
+  const numA=Math.floor(Math.random()*3);for(let i=0;i<numA;i++){const tipo=tiposAlerta[Math.floor(Math.random()*tiposAlerta.length)];const sev=severidades[Math.floor(Math.random()*severidades.length)];const zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];const titulos={celular_no_autorizado:'Celular no autorizado detectado',gendarme_inactivo:'Gendarme sin señal',movimiento_sospechoso:'Movimiento sospechoso',puerta_abierta:'Puerta de seguridad abierta',dron_detectado:'Dron no identificado'};STATE.alertas.push({id:recinto.id+'_a'+i,titulo:titulos[tipo]||'Alerta de seguridad',descripcion:'Detectado en '+zona.nombre+' del recinto '+recinto.nombre,tipo:tipo,severidad:sev,recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,latitud:zona.latitud,longitud:zona.longitud,created_at:new Date(Date.now()-Math.random()*3600000).toISOString(),resuelta:0});}});}
+  function initMap(){STATE.map=L.map('map',{center:CONFIG.MAP_CENTER,zoom:CONFIG.MAP_ZOOM,maxZoom:CONFIG.MAP_MAX_ZOOM,minZoom:CONFIG.MAP_MIN_ZOOM,zoomControl:true});L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(STATE.map);STATE.layers.recintos=L.layerGroup().addTo(STATE.map);STATE.layers.recintoPoligonos=L.layerGroup().addTo(STATE.map);STATE.layers.zonas=L.layerGroup().addTo(STATE.map);STATE.layers.gendarmes=L.layerGroup().addTo(STATE.map);STATE.layers.dispositivos=L.layerGroup().addTo(STATE.map);STATE.layers.drones=L.layerGroup().addTo(STATE.map);STATE.layers.alertas=L.layerGroup().addTo(STATE.map);document.getElementById('toggle-gendarmes').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.gendarmes);else STATE.map.removeLayer(STATE.layers.gendarmes);});document.getElementById('toggle-dispositivos').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.dispositivos);else STATE.map.removeLayer(STATE.layers.dispositivos);});document.getElementById('toggle-drones').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.drones);else STATE.map.removeLayer(STATE.layers.drones);});document.getElementById('toggle-alertas').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.alertas);else STATE.map.removeLayer(STATE.layers.alertas);});document.getElementById('toggle-zonas').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.zonas);else STATE.map.removeLayer(STATE.layers.zonas);});document.getElementById('recinto-select').addEventListener('change',e=>{if(e.target.value)cambiarAVistaRecinto(e.target.value);else cambiarAVistaNacional();});document.getElementById('btn-vista-nacional').addEventListener('click',()=>{document.getElementById('recinto-select').value='';cambiarAVistaNacional();});dibujarTodo();}
+  function dibujarTodo(){dibujarRecintos();dibujarZonas();dibujarGendarmes();dibujarDispositivos();dibujarDrones();dibujarAlertas();}
+  function dibujarRecintos(){STATE.layers.recintos.clearLayers();STATE.layers.recintoPoligonos.clearLayers();STATE.markers.recintos={};STATE.recintos.forEach(recinto=>{const gActivos=STATE.gendarmes.filter(g=>g.recinto_id===recinto.id&&g.en_linea).length;const dNoAut=STATE.dispositivos.filter(d=>d.recinto_id===recinto.id&&!d.es_autorizado).length;const aActivas=STATE.alertas.filter(a=>a.recinto_id===recinto.id&&!a.resuelta).length;const aCriticas=STATE.alertas.filter(a=>a.recinto_id===recinto.id&&a.severidad==='critica'&&!a.resuelta).length;const drActivos=STATE.drones.filter(d=>d.recinto_id===recinto.id&&(d.estado==='en_vuelo'||d.estado==='patrulla')).length;let color='#43a047',pulso='';if(aCriticas>0){color='#e53935';pulso='animation:pulse 1.5s infinite;';}else if(aActivas>0){color='#ffa726';}const icon=L.divIcon({html:'<div style="position:relative;"><div style="width:48px;height:48px;background:'+color+';border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.4);'+pulso+'">🏛️</div>'+(aActivas>0?'<div style="position:absolute;top:-4px;right:-4px;background:'+color+';color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid #fff;">'+aActivas+'</div>':'')+'</div>',className:'marker-icon',iconSize:[48,48],iconAnchor:[24,24]});const marker=L.marker([recinto.latitud,recinto.longitud],{icon}).addTo(STATE.layers.recintos).bindPopup('<div style="color:#000;font-family:sans-serif;min-width:250px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:28px;">🏛️</span><div><strong style="font-size:16px;">'+recinto.nombre+'</strong><br><span style="font-size:11px;color:#666;">'+(recinto.direccion||'')+'</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;"><div style="background:#e8f5e9;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#2e7d32;">'+gActivos+'</div><div style="font-size:10px;color:#666;">👮 Gendarmes</div></div><div style="background:#ffebee;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#c62828;">'+dNoAut+'</div><div style="font-size:10px;color:#666;">📱 No autorizados</div></div><div style="background:#fff3e0;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#e65100;">'+aActivas+'</div><div style="font-size:10px;color:#666;">🔔 Alertas</div></div><div style="background:#e3f2fd;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#1565c0;">'+drActivos+'</div><div style="font-size:10px;color:#666;">🚁 Drones</div></div></div><button onclick="cambiarAVistaRecinto(\''+recinto.id+'\');document.getElementById(\'recinto-select\').value=\''+recinto.id+'\';" style="width:100%;margin-top:8px;padding:6px;background:#1a237e;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Ver detalle del recinto</button></div>');marker.on('click',()=>{document.getElementById('recinto-select').value=recinto.id;cambiarAVistaRecinto(recinto.id);});STATE.markers.recintos[recinto.id]=marker;});}
+  function dibujarZonas(){STATE.layers.zonas.clearLayers();STATE.markers.zonas={};const colorMap={patio:'#43a047',celda:'#e53935',acceso:'#ffa726',enfermeria:'#29b6f6',perimetro:'#ff7043'};STATE.zonas.forEach(z=>{if(STATE.recintoActivo&&z.recinto_id!==STATE.recintoActivo.id)return;const color=colorMap[z.tipo]||'#9e9e9e';L.circle([z.latitud,z.longitud],{radius:z.radio,color:color,fillColor:color,fillOpacity:0.15,weight:2,dashArray:'5,5'}).addTo(STATE.layers.zonas);const icon=L.divIcon({html:'<div style="width:24px;height:24px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏘️</div>',className:'marker-icon',iconSize:[24,24],iconAnchor:[12,12]});L.marker([z.latitud,z.longitud],{icon}).addTo(STATE.layers.zonas).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+z.nombre+'</strong><br><span style="font-size:11px;color:#666;">Tipo: '+z.tipo+'</span></div>');});}
+  function dibujarGendarmes(){STATE.layers.gendarmes.clearLayers();STATE.markers.gendarmes={};STATE.gendarmes.forEach(g=>{if(STATE.recintoActivo&&g.recinto_id!==STATE.recintoActivo.id)return;const enLinea=g.en_linea;const color=enLinea?'#43a047':'#e53935';const icon=L.divIcon({html:'<div style="width:32px;height:32px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(enLinea?'animation:pulse 2s infinite;':'')+'">👮</div>',className:'marker-icon',iconSize:[32,32],iconAnchor:[16,16]});L.marker([g.ultima_ubicacion_lat,g.ultima_ubicacion_lng],{icon}).addTo(STATE.layers.gendarmes).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+g.nombre+' '+g.apellido+'</strong><br><span style="font-size:11px;color:#666;">'+g.cargo+'</span><br><span style="font-size:11px;color:#666;">📍 '+g.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+g.recinto_nombre+'</span><br><span style="font-size:11px;color:'+(enLinea?'#43a047':'#e53935')+';">'+(enLinea?'● En línea':'● Sin señal')+'</span></div>');});}
+  function dibujarDispositivos(){STATE.layers.dispositivos.clearLayers();STATE.markers.dispositivos={};STATE.dispositivos.forEach(d=>{if(STATE.recintoActivo&&d.recinto_id!==STATE.recintoActivo.id)return;const noAut=!d.es_autorizado;const color=noAut?'#e53935':'#29b6f6';const icon=L.divIcon({html:'<div style="width:28px;height:28px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(noAut?'animation:pulse 1.5s infinite;':'')+'">📱</div>',className:'marker-icon',iconSize:[28,28],iconAnchor:[14,14]});L.marker([d.latitud,d.longitud],{icon}).addTo(STATE.layers.dispositivos).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+d.fabricante+' '+d.modelo+'</strong><br><span style="font-size:11px;color:#666;">📶 '+Math.round(d.senial_db)+'dB</span><br><span style="font-size:11px;color:#666;">📍 '+d.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+d.recinto_nombre+'</span><br><span style="font-size:11px;color:'+(noAut?'#e53935':'#43a047')+';">'+(noAut?'❌ No autorizado':'✅ Autorizado')+'</span></div>');});}
+  function dibujarDrones(){STATE.layers.drones.clearLayers();STATE.markers.drones={};STATE.drones.forEach(d=>{if(STATE.recintoActivo&&d.recinto_id!==STATE.recintoActivo.id)return;const enVuelo=d.estado==='en_vuelo'||d.estado==='patrulla';const color=enVuelo?'#ffa726':(d.estado==='en_base'?'#43a047':'#e53935');const icon=L.divIcon({html:'<div style="width:32px;height:32px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(enVuelo?'animation:pulse 2s infinite;':'')+'">🚁</div>',className:'marker-icon',iconSize:[32,32],iconAnchor:[16,16]});L.marker([d.latitud,d.longitud],{icon}).addTo(STATE.layers.drones).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+d.nombre+'</strong><br><span style="font-size:11px;color:#666;">'+getEstadoDronIcon(d.estado)+' '+d.estado+'</span><br><span style="font-size:11px;color:#666;">🔋 '+Math.round(d.bateria)+'% · 📏 '+Math.round(d.altitud)+'m · 💨 '+Math.round(d.velocidad)+'km/h</span><br><span style="font-size:11px;color:#666;">🏛️ '+d.recinto_nombre+'</span></div>');marker.on('click',()=>seleccionarDron(d.id));STATE.markers.drones[d.id]=marker;});}
+  function dibujarAlertas(){STATE.layers.alertas.clearLayers();STATE.markers.alertas={};STATE.alertas.forEach(a=>{if(STATE.recintoActivo&&a.recinto_id!==STATE.recintoActivo.id)return;const colorMap={critica:'#e53935',alta:'#ffa726',media:'#29b6f6',baja:'#43a047'};const color=colorMap[a.severidad]||'#ffa726';const icon=L.divIcon({html:'<div style="width:36px;height:36px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pulse 1s infinite;">🔔</div>',className:'marker-icon',iconSize:[36,36],iconAnchor:[18,18]});L.marker([a.latitud,a.longitud],{icon}).addTo(STATE.layers.alertas).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+a.titulo+'</strong><br><span style="font-size:11px;color:#666;">'+a.descripcion+'</span><br><span style="font-size:11px;color:#666;">📍 '+a.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+a.recinto_nombre+'</span><br><span style="font-size:11px;color:#666;">⏱️ '+formatDate(a.created_at)+'</span></div>');marker.on('click',()=>abrirModal(a.titulo,'<p>'+a.descripcion+'</p><p style="color:#666;font-size:12px;">📍 '+a.zona_nombre+'<br>🏛️ '+a.recinto_nombre+'<br>⏱️ '+formatDate(a.created_at)+'</p>',a.id));STATE.markers.alertas[a.id]=marker;});}
+  function cambiarAVistaRecinto(recintoId){const recinto=STATE.recintos.find(r=>r.id===recintoId);if(!recinto)return;STATE.recintoActivo=recinto;STATE.vistaActual='recinto';document.getElementById('btn-vista-nacional').style.display='inline-flex';document.getElementById('vista-indicator').textContent='🏛️ '+recinto.nombre;document.getElementById('vista-indicator').className='vista-indicator recinto';STATE.map.setView([recinto.latitud,recinto.longitud],CONFIG.MAP_ZOOM_RECINTO);dibujarTodo();renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();}
+  function cambiarAVistaNacional(){STATE.recintoActivo=null;STATE.vistaActual='nacional';document.getElementById('btn-vista-nacional').style.display='none';document.getElementById('vista-indicator').textContent='🇨🇱 Vista Nacional - Todos los recintos';document.getElementById('vista-indicator').className='vista-indicator nacional';STATE.map.setView(CONFIG.MAP_CENTER,CONFIG.MAP_ZOOM);dibujarTodo();renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();}
+  function renderizarGendarmes(){const container=document.getElementById('gendarmes-list');const count=document.getElementById('gendarmes-count');let lista=STATE.gendarmes;if(STATE.recintoActivo)lista=lista.filter(g=>g.recinto_id===STATE.recintoActivo.id);count.textContent=lista.length;if(!lista.length){container.innerHTML='<div class="loading">Sin gendarmes</div>';return;}container.innerHTML=lista.map(g=>{const enLinea=g.en_linea;return'<div class="list-item" onclick="STATE.map.setView(['+g.ultima_ubicacion_lat+','+g.ultima_ubicacion_lng+'],18)"><div class="avatar '+(enLinea?'online':'offline')+'">👮</div><div class="info"><div class="name">'+g.nombre+' '+g.apellido+'</div><div class="detail">'+g.cargo+' · '+g.zona_nombre+'</div></div><span class="status-dot '+(enLinea?'online':'offline')+'"></span></div>';}).join('');}
+  function renderizarDispositivos(){const container=document.getElementById('dispositivos-list');const count=document.getElementById('dispositivos-count');let lista=STATE.dispositivos;if(STATE.recintoActivo)lista=lista.filter(d=>d.recinto_id===STATE.recintoActivo.id);const noAut=lista.filter(d=>!d.es_autorizado);count.textContent=noAut.length;if(!lista.length){container.innerHTML='<div class="loading">Sin dispositivos</div>';return;}container.innerHTML=lista.map(d=>{const peligroso=!d.es_autorizado;return'<div class="list-item" onclick="STATE.map.setView(['+d.latitud+','+d.longitud+'],18)"><div class="avatar '+(peligroso?'danger':'info')+'">📱</div><div class="info"><div class="name">'+d.fabricante+' '+d.modelo+'</div><div class="detail">'+Math.round(d.senial_db)+'dB '+(peligroso?'· ❌ No autorizado':'· ✅ Autorizado')+'</div></div><span class="status-dot '+(peligroso?'offline':'online')+'"></span></div>';}).join('');}
+  function renderizarDrones(){const container=document.getElementById('drones-list');const count=document.getElementById('drones-count');let lista=STATE.drones;if(STATE.recintoActivo)lista=lista.filter(d=>d.recinto_id===STATE.recintoActivo.id);count.textContent=lista.length;if(!lista.length){container.innerHTML='<div class="loading">Sin drones</div>';return;}container.innerHTML=lista.map(d=>{const estadoClass=getEstadoDronClass(d.estado);return'<div class="list-item" onclick="seleccionarDron(\''+d.id+'\')"><div class="avatar '+estadoClass+'">🚁</div><div class="info"><div class="name">'+d.nombre+'</div><div class="detail">'+getEstadoDronIcon(d.estado)+' '+d.estado+' · 🔋'+Math.round(d.bateria)+'%</div></div><span class="status-dot '+estadoClass+'"></span></div>';}).join('');actualizarSelectorDrones();}
+  function renderizarAlertas(){const container=document.getElementById('alertas-list');const count=document.getElementById('alertas-count');let lista=STATE.alertas;if(STATE.recintoActivo)lista=lista.filter(a=>a.recinto_id===STATE.recintoActivo.id);count.textContent=lista.length;if(!lista.length){container.innerHTML='<div class="loading">Sin alertas activas ✅</div>';return;}container.innerHTML=lista.map(a=>{return'<div class="alerta-item '+getSeveridadClass(a.severidad)+'" onclick="abrirModal(\''+a.titulo+'\',\'<p>'+a.descripcion+'</p><p style=\\\'color:#666;font-size:12px;\\\'>📍 '+a.zona_nombre+'<br>🏛️ '+a.recinto_nombre+'<br>⏱️ '+formatDate(a.created_at)+'</p>\',\''+a.id+'\')"><span class="alerta-icon">'+getTipoAlertaIcon(a.tipo)+'</span><div class="alerta-content"><div class="alerta-titulo">'+a.titulo+'</div><div class="alerta-desc">'+a.descripcion+'</div><div class="alerta-time">'+formatDate(a.created_at)+' · '+a.zona_nombre+'</div></div></div>';}).join('');}
+  function seleccionarDron(dronId){const dron=STATE.drones.find(d=>d.id===dronId);if(!dron)return;STATE.dronSeleccionado=dron;document.getElementById('dron-select').value=dronId;document.getElementById('dron-estado').textContent=getEstadoDronIcon(dron.estado)+' '+dron.estado;document.getElementById('dron-bateria').textContent=Math.round(dron.bateria)+'%';document.getElementById('dron-altitud').textContent=Math.round(dron.altitud)+'m';document.getElementById('dron-velocidad').textContent=Math.round(dron.velocidad)+' km/h';document.querySelectorAll('.btn-dron').forEach(b=>b.disabled=false);document.querySelector('.btn-despegar').disabled=dron.estado!=='en_base';document.querySelector('.btn-aterrizar').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);document.querySelector('.btn-patrulla').disabled=dron.estado!=='en_base';document.querySelector('.btn-regresar').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);document.querySelector('.btn-camara').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);if(dron.latitud&&dron.longitud)STATE.map.setView([dron.latitud,dron.longitud],18);}
+  document.getElementById('dron-select').addEventListener('change',e=>{if(e.target.value)seleccionarDron(e.target.value);else deshabilitarBotonesDron();});
+  function deshabilitarBotonesDron(){document.querySelectorAll('.btn-dron').forEach(b=>b.disabled=true);document.getElementById('dron-estado').textContent='-';document.getElementById('dron-bateria').textContent='-';document.getElementById('dron-altitud').textContent='-';document.getElementById('dron-velocidad').textContent='-';STATE.dronSeleccionado=null;}
+  function actualizarSelectorDrones(){const select=document.getElementById('dron-select');const current=select.value;select.innerHTML='<option value="">Seleccionar dron...</option>';STATE.drones.forEach(d=>{const opt=document.createElement('option');opt.value=d.id;opt.textContent=d.nombre+' ('+d.estado+')';select.appendChild(opt);});if(current)select.value=current;}
+  function comandoDron(comando){if(!STATE.dronSeleccionado){mostrarToast('❌ Seleccione un dron primero','alta');return;}const dron=STATE.dronSeleccionado;if(comando==='despegar'){dron.estado='en_vuelo';dron.altitud=30+Math.random()*50;dron.velocidad=10+Math.random()*20;}else if(comando==='aterrizar'){dron.estado='en_base';dron.altitud=0;dron.velocidad=0;}else if(comando==='iniciar_patrulla'){dron.estado='patrulla';dron.altitud=40+Math.random()*40;dron.velocidad=15+Math.random()*15;}else if(comando==='regresar_base'){dron.estado='en_base';dron.altitud=0;dron.velocidad=0;dron.latitud=STATE.recintos.find(r=>r.id===dron.recinto_id).latitud;dron.longitud=STATE.recintos.find(r=>r.id===dron.recinto_id).longitud;}else if(comando==='activar_camara'){dron.camara_activa=!dron.camara_activa;mostrarToast('📷 Cámara '+(dron.camara_activa?'activada':'desactivada'),'media');}seleccionarDron(dron.id);renderizarDrones();dibujarDrones();mostrarToast('🚁 Comando \''+comando+'\' ejecutado en '+dron.nombre,'media');}
+  function actualizarUI(){const select=document.getElementById('recinto-select');STATE.recintos.forEach(r=>{const opt=document.createElement('option');opt.value=r.id;opt.textContent='🏛️ '+r.nombre;select.appendChild(opt);});renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();actualizarStats();}
+  function actualizarStats(){const gActivos=STATE.gendarmes.filter(g=>g.en_linea).length;const gInactivos=STATE.gendarmes.length-gActivos;const dNoAut=STATE.dispositivos.filter(d=>!d.es_autorizado).length;const drVuelo=STATE.drones.filter(d=>d.estado==='en_vuelo'||d.estado==='patrulla').length;document.getElementById('stat-recinto').querySelector('.stat-value').textContent=STATE.recintos.length;document.getElementById('stat-gendarmes').querySelector('.stat-value').textContent=STATE.gendarmes.length;document.getElementById('stat-dispositivos').querySelector('.stat-value').textContent=STATE.dispositivos.length;document.getElementById('stat-alertas').querySelector('.stat-value').textContent=STATE.alertas.length;document.getElementById('stat-drones').querySelector('.stat-value').textContent=STATE.drones.length;document.getElementById('stat-gendarmes-activos').textContent=gActivos;document.getElementById('stat-gendarmes-inactivos').textContent=gInactivos;document.getElementById('stat-dispositivos-no-autorizados').textContent=dNoAut;document.getElementById('stat-drones-vuelo').textContent=drVuelo;}
+  document.addEventListener('DOMContentLoaded',()=>{console.log('🔒 SISGEN - Dashboard Estático');cargarDatos();});
+  </script>
 </body>
 </html>

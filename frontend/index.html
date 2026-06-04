@@ -1,166 +1,492 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🔒 SISGEN - Sistema de Gestión de Seguridad Penitenciaria | Gendarmería de Chile</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="css/styles.css" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
-  <style>
-    .marker-icon { background: transparent !important; border: none !important; }
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-    @media (max-width: 768px) {
-      .sidebar-left, .sidebar-right { display: none; }
-      .header-stats { display: none; }
-      .map-toolbar { flex-direction: column; align-items: stretch; }
-      .toolbar-right { justify-content: center; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔒 SISGEN - Sistema de Gestión de Seguridad Penitenciaria | Gendarmería de Chile</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="css/styles.css" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
+<style>
+.marker-icon{background:transparent!important;border:none!important}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes pulse-fast{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+@media(max-width:768px){.sidebar-left,.sidebar-right{display:none}.header-stats{display:none}.map-toolbar{flex-direction:column;align-items:stretch}.toolbar-right{justify-content:center}}
+</style>
 </head>
 <body>
-  <header class="top-bar">
-    <div class="logo">
-      <span class="logo-icon">🇨🇱</span>
-      <div class="logo-text">
-        <h1>SISGEN</h1>
-        <span class="subtitle">Sistema de Gestión de Seguridad Penitenciaria · Gendarmería de Chile</span>
-      </div>
-    </div>
-    <div class="header-stats">
-      <div class="stat-item" id="stat-recinto"><span class="stat-value">0</span><span class="stat-label">Recintos</span></div>
-      <div class="stat-item" id="stat-gendarmes"><span class="stat-value">0</span><span class="stat-label">Gendarmes</span></div>
-      <div class="stat-item" id="stat-dispositivos"><span class="stat-value">0</span><span class="stat-label">Celulares</span></div>
-      <div class="stat-item" id="stat-alertas"><span class="stat-value">0</span><span class="stat-label">Alertas</span></div>
-      <div class="stat-item" id="stat-drones"><span class="stat-value">0</span><span class="stat-label">Drones</span></div>
-    </div>
-    <div class="header-actions">
-      <span class="connection-status" id="connection-status">● Estático</span>
-      <a href="../" style="background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;" title="Volver al inicio">🏠</a>
-      <button class="btn-icon" onclick="window.location.reload()" title="Recargar">🔄</button>
-    </div>
-  </header>
-  <div class="main-container">
-    <aside class="sidebar-left">
-      <div class="panel panel-gendarmes">
-        <div class="panel-header"><h3>👮 Gendarmes en Línea</h3><span class="badge" id="gendarmes-count">0</span></div>
-        <div class="panel-body" id="gendarmes-list"><div class="loading">Cargando...</div></div>
-      </div>
-      <div class="panel panel-dispositivos">
-        <div class="panel-header"><h3>📱 Celulares Detectados</h3><span class="badge badge-danger" id="dispositivos-count">0</span></div>
-        <div class="panel-body" id="dispositivos-list"><div class="loading">Cargando...</div></div>
-      </div>
-      <div class="panel panel-drones">
-        <div class="panel-header"><h3>🚁 Drones</h3><span class="badge badge-info" id="drones-count">0</span></div>
-        <div class="panel-body" id="drones-list"><div class="loading">Cargando...</div></div>
-      </div>
-    </aside>
-    <main class="map-container">
-      <div class="map-toolbar">
-        <div class="toolbar-left">
-          <button id="btn-vista-nacional" class="btn-back" style="display:none;" title="Volver a vista nacional">← Volver</button>
-          <select id="recinto-select" class="form-select"><option value="">🇨🇱 Todos los recintos</option></select>
-          <span id="vista-indicator" class="vista-indicator nacional">🇨🇱 Vista Nacional - Todos los recintos</span>
-        </div>
-        <div class="toolbar-right">
-          <label class="toggle-label"><input type="checkbox" id="toggle-gendarmes" checked><span>👮 Gendarmes</span></label>
-          <label class="toggle-label"><input type="checkbox" id="toggle-dispositivos" checked><span>📱 Celulares</span></label>
-          <label class="toggle-label"><input type="checkbox" id="toggle-drones" checked><span>🚁 Drones</span></label>
-          <label class="toggle-label"><input type="checkbox" id="toggle-alertas" checked><span>🔔 Alertas</span></label>
-          <label class="toggle-label"><input type="checkbox" id="toggle-zonas" checked><span>🏘️ Zonas</span></label>
-        </div>
-      </div>
-      <div id="map"></div>
-    </main>
-    <aside class="sidebar-right">
-      <div class="panel panel-alertas">
-        <div class="panel-header"><h3>🔔 Alertas Activas</h3><span class="badge badge-danger" id="alertas-count">0</span></div>
-        <div class="panel-body" id="alertas-list"><div class="loading">Cargando...</div></div>
-      </div>
-      <div class="panel panel-stats">
-        <div class="panel-header"><h3>📊 Estadísticas</h3></div>
-        <div class="panel-body">
-          <div class="stats-grid">
-            <div class="stat-card"><div class="stat-number" id="stat-gendarmes-activos">0</div><div class="stat-desc">Gendarmes Activos</div></div>
-            <div class="stat-card stat-warning"><div class="stat-number" id="stat-gendarmes-inactivos">0</div><div class="stat-desc">Sin Señal</div></div>
-            <div class="stat-card stat-danger"><div class="stat-number" id="stat-dispositivos-no-autorizados">0</div><div class="stat-desc">Celulares No Autorizados</div></div>
-            <div class="stat-card stat-info"><div class="stat-number" id="stat-drones-vuelo">0</div><div class="stat-desc">Drones en Vuelo</div></div>
-          </div>
-        </div>
-      </div>
-      <div class="panel panel-dron-control">
-        <div class="panel-header"><h3>🎮 Control de Drones</h3></div>
-        <div class="panel-body" id="dron-control-panel">
-          <div class="dron-selector"><select id="dron-select" class="form-select"><option value="">Seleccionar dron...</option></select></div>
-          <div class="dron-info" id="dron-info">
-            <div class="dron-info-row"><span>Estado:</span><span id="dron-estado">-</span></div>
-            <div class="dron-info-row"><span>Batería:</span><span id="dron-bateria">-</span></div>
-            <div class="dron-info-row"><span>Altitud:</span><span id="dron-altitud">-</span></div>
-            <div class="dron-info-row"><span>Velocidad:</span><span id="dron-velocidad">-</span></div>
-          </div>
-          <div class="dron-buttons">
-            <button class="btn-dron btn-despegar" onclick="comandoDron('despegar')" disabled>🛫 Despegar</button>
-            <button class="btn-dron btn-aterrizar" onclick="comandoDron('aterrizar')" disabled>🛬 Aterrizar</button>
-            <button class="btn-dron btn-patrulla" onclick="comandoDron('iniciar_patrulla')" disabled>🔄 Patrullar</button>
-            <button class="btn-dron btn-regresar" onclick="comandoDron('regresar_base')" disabled>🏠 Regresar</button>
-            <button class="btn-dron btn-camara" onclick="comandoDron('activar_camara')" disabled>📷 Cámara</button>
-          </div>
-        </div>
-      </div>
-    </aside>
-  </div>
-  <div id="alerta-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header"><h3 id="modal-titulo">Alerta</h3><button class="btn-close" onclick="cerrarModal()">&times;</button></div>
-      <div class="modal-body" id="modal-body"></div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
-        <button class="btn btn-primary" onclick="resolverAlerta()">✅ Resolver Alerta</button>
-      </div>
-    </div>
-  </div>
-  <div id="toast-container"></div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-  const CONFIG={MAP_CENTER:[-33.4489,-70.6693],MAP_ZOOM:6,MAP_ZOOM_RECINTO:16,MAP_MAX_ZOOM:19,MAP_MIN_ZOOM:5};
-  const STATE={recintos:[],gendarmes:[],dispositivos:[],drones:[],alertas:[],zonas:[],markers:{gendarmes:{},dispositivos:{},drones:{},alertas:{},zonas:{},recintos:{}},layers:{gendarmes:null,dispositivos:null,drones:null,alertas:null,zonas:null,recintos:null,recintoPoligonos:null},map:null,currentAlertaId:null,dronSeleccionado:null,vistaActual:'nacional',recintoActivo:null};
-  function formatDate(d){if(!d)return'-';const date=new Date(d);const diff=Math.floor((Date.now()-date)/1000);if(diff<60)return'Ahora';if(diff<3600)return Math.floor(diff/60)+' min';if(diff<86400)return Math.floor(diff/3600)+'h';return date.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
-  function getSeveridadClass(s){return{critica:'critica',alta:'alta',media:'media',baja:'baja'}[s]||'media';}
-  function getEstadoDronClass(e){return{en_base:'online',en_vuelo:'online',despegando:'warning',regresando:'warning',patrulla:'online',cargando:'warning',mantenimiento:'offline',perdido:'offline'}[e]||'offline';}
-  function getEstadoDronIcon(e){return{en_base:'🅿️',en_vuelo:'✈️',despegando:'🛫',regresando:'🛬',patrulla:'🔄',cargando:'🔋',mantenimiento:'🔧',perdido:'❌'}[e]||'🚁';}
-  function getTipoAlertaIcon(t){return{celular_no_autorizado:'📱',gendarme_inactivo:'👮⚠️',dron_detectado:'🚁',movimiento_sospechoso:'👤',puerta_abierta:'🚪',alarma_general:'🔔',dron_bateria_baja:'🔋⚠️',dron_perdido:'🚁❌'}[t]||'🔔';}
-  function mostrarToast(msg,sev){const c=document.getElementById('toast-container');const t=document.createElement('div');t.className='toast '+getSeveridadClass(sev||'media');t.innerHTML=msg;c.appendChild(t);setTimeout(()=>{t.classList.add('fade-out');setTimeout(()=>t.remove(),300);},5000);}
-  function abrirModal(titulo,contenido,alertaId){document.getElementById('modal-titulo').textContent=titulo;document.getElementById('modal-body').innerHTML=contenido;document.getElementById('alerta-modal').classList.remove('hidden');STATE.currentAlertaId=alertaId;}
-  function cerrarModal(){document.getElementById('alerta-modal').classList.add('hidden');STATE.currentAlertaId=null;}
-  function resolverAlerta(){if(STATE.currentAlertaId){STATE.alertas=STATE.alertas.filter(a=>a.id!==STATE.currentAlertaId);renderizarAlertas();actualizarStats();mostrarToast('✅ Alerta resuelta','baja');}cerrarModal();}
-  document.addEventListener('keydown',(e)=>{if(e.key==='Escape')cerrarModal();});
-  async function cargarDatos(){try{const res=await fetch('data/carceles_chile.json');const data=await res.json();STATE.recintos=[];data.regiones.forEach(r=>{r.recintos.forEach(rec=>{STATE.recintos.push({...rec,id:rec.nombre.replace(/[^a-zA-Z0-9]/g,'_'),region:r.nombre});});});generarDatosSimulados();initMap();actualizarUI();return true;}catch(err){console.error('Error cargando datos:',err);document.getElementById('gendarmes-list').innerHTML='<div class="loading" style="color:var(--danger)">Error al cargar datos</div>';return false;}}
-  function generarDatosSimulados(){const nombres=['Carlos Muñoz','María González','José Rodríguez','Ana Martínez','Luis Pérez','Patricia López','Andrés Silva','Rosa Morales','Diego Vargas','Carmen Rojas','Francisco Soto','Laura Castillo','Manuel Reyes','Sandra Torres','Jorge Herrera','Verónica Castro','Ricardo Ortiz','Daniela Flores','Eduardo Gómez','Paola Medina','Cristian Ruiz','Marcela Díaz','Felipe Álvarez','Angélica Romero','Sebastián Acosta'];const cargos=['Gendarme','Cabo','Sargento','Suboficial','Oficial'];const fabricantes=['Samsung','Xiaomi','Motorola','Huawei','Apple','LG'];const modelos=['Galaxy A54','Redmi Note 12','Moto G84','P60 Pro','iPhone 14','K62'];const tiposAlerta=['celular_no_autorizado','gendarme_inactivo','movimiento_sospechoso','puerta_abierta','dron_detectado'];const severidades=['critica','alta','media','baja'];const estadosDron=['en_base','en_vuelo','patrulla','cargando','mantenimiento'];STATE.gendarmes=[];STATE.dispositivos=[];STATE.drones=[];STATE.alertas=[];STATE.zonas=[];STATE.recintos.forEach((recinto,idx)=>{const zonasRecinto=[{id:recinto.id+'_z1',nombre:'Patio Principal',tipo:'patio',latitud:recinto.latitud+0.001,longitud:recinto.longitud+0.001,radio:30},{id:recinto.id+'_z2',nombre:'Módulo A',tipo:'celda',latitud:recinto.latitud-0.001,longitud:recinto.longitud-0.001,radio:20},{id:recinto.id+'_z3',nombre:'Acceso Principal',tipo:'acceso',latitud:recinto.latitud+0.002,longitud:recinto.longitud-0.001,radio:15},{id:recinto.id+'_z4',nombre:'Enfermería',tipo:'enfermeria',latitud:recinto.latitud-0.002,longitud:recinto.longitud+0.002,radio:15},{id:recinto.id+'_z5',nombre:'Perímetro Norte',tipo:'perimetro',latitud:recinto.latitud+0.003,longitud:recinto.longitud,radio:10}];STATE.zonas.push(...zonasRecinto);const numG=3+Math.floor(Math.random()*4);for(let i=0;i<numG;i++){const gIdx=(idx*6+i)%nombres.length;const[nom,ape]=nombres[gIdx].split(' ');const activo=Math.random()>0.2;const zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];STATE.gendarmes.push({id:recinto.id+'_g'+i,nombre:nom,apellido:ape,rut:Math.floor(1e7+Math.random()*2e7)+'-'+Math.floor(Math.random()*9)+'k',cargo:cargos[Math.floor(Math.random()*cargos.length)],recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,ultima_ubicacion_lat:zona.latitud+(Math.random()-0.5)*0.002,ultima_ubicacion_lng:zona.longitud+(Math.random()-0.5)*0.002,ultimo_heartbeat:new Date(Date.now()-Math.random()*300000).toISOString(),en_linea:activo?1:0});}
-  const numD=1+Math.floor(Math.random()*3);for(let i=0;i<numD;i++){const fIdx=Math.floor(Math.random()*fabricantes.length);const noAut=Math.random()>0.6;const zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];STATE.dispositivos.push({id:recinto.id+'_d'+i,fabricante:fabricantes[fIdx],modelo:modelos[fIdx],tipo_dispositivo:'celular',es_autorizado:noAut?0:1,recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,latitud:zona.latitud+(Math.random()-0.5)*0.003,longitud:zona.longitud+(Math.random()-0.5)*0.003,senial_db:-40-Math.random()*40,ultima_deteccion:new Date(Date.now()-Math.random()*600000).toISOString()});}
-  const numDr=1+Math.floor(Math.random()*2);for(let i=0;i<numDr;i++){const est=estadosDron[Math.floor(Math.random()*estadosDron.length)];const enVuelo=est==='en_vuelo'||est==='patrulla';STATE.drones.push({id:recinto.id+'_dr'+i,nombre:'Dron-'+recinto.nombre.substring(0,3).toUpperCase()+'-'+(i+1),modelo:'DJI Matrice 30T',recinto_id:recinto.id,recinto_nombre:recinto.nombre,estado:est,bateria:20+Math.random()*80,altitud:enVuelo?20+Math.random()*80:0,velocidad:enVuelo?5+Math.random()*25:0,latitud:enVuelo?recinto.latitud+(Math.random()-0.5)*0.01:recinto.latitud,longitud:enVuelo?recinto.longitud+(Math.random()-0.5)*0.01:recinto.longitud,modo_vuelo:enVuelo?'automático':'manual',camara_activa:enVuelo?Math.random()>0.3:false});}
-  const numA=Math.floor(Math.random()*3);for(let i=0;i<numA;i++){const tipo=tiposAlerta[Math.floor(Math.random()*tiposAlerta.length)];const sev=severidades[Math.floor(Math.random()*severidades.length)];const zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];const titulos={celular_no_autorizado:'Celular no autorizado detectado',gendarme_inactivo:'Gendarme sin señal',movimiento_sospechoso:'Movimiento sospechoso',puerta_abierta:'Puerta de seguridad abierta',dron_detectado:'Dron no identificado'};STATE.alertas.push({id:recinto.id+'_a'+i,titulo:titulos[tipo]||'Alerta de seguridad',descripcion:'Detectado en '+zona.nombre+' del recinto '+recinto.nombre,tipo:tipo,severidad:sev,recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,latitud:zona.latitud,longitud:zona.longitud,created_at:new Date(Date.now()-Math.random()*3600000).toISOString(),resuelta:0});}});}
-  function initMap(){STATE.map=L.map('map',{center:CONFIG.MAP_CENTER,zoom:CONFIG.MAP_ZOOM,maxZoom:CONFIG.MAP_MAX_ZOOM,minZoom:CONFIG.MAP_MIN_ZOOM,zoomControl:true});L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(STATE.map);STATE.layers.recintos=L.layerGroup().addTo(STATE.map);STATE.layers.recintoPoligonos=L.layerGroup().addTo(STATE.map);STATE.layers.zonas=L.layerGroup().addTo(STATE.map);STATE.layers.gendarmes=L.layerGroup().addTo(STATE.map);STATE.layers.dispositivos=L.layerGroup().addTo(STATE.map);STATE.layers.drones=L.layerGroup().addTo(STATE.map);STATE.layers.alertas=L.layerGroup().addTo(STATE.map);document.getElementById('toggle-gendarmes').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.gendarmes);else STATE.map.removeLayer(STATE.layers.gendarmes);});document.getElementById('toggle-dispositivos').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.dispositivos);else STATE.map.removeLayer(STATE.layers.dispositivos);});document.getElementById('toggle-drones').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.drones);else STATE.map.removeLayer(STATE.layers.drones);});document.getElementById('toggle-alertas').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.alertas);else STATE.map.removeLayer(STATE.layers.alertas);});document.getElementById('toggle-zonas').addEventListener('change',e=>{if(e.target.checked)STATE.map.addLayer(STATE.layers.zonas);else STATE.map.removeLayer(STATE.layers.zonas);});document.getElementById('recinto-select').addEventListener('change',e=>{if(e.target.value)cambiarAVistaRecinto(e.target.value);else cambiarAVistaNacional();});document.getElementById('btn-vista-nacional').addEventListener('click',()=>{document.getElementById('recinto-select').value='';cambiarAVistaNacional();});dibujarTodo();}
-  function dibujarTodo(){dibujarRecintos();dibujarZonas();dibujarGendarmes();dibujarDispositivos();dibujarDrones();dibujarAlertas();}
-  function dibujarRecintos(){STATE.layers.recintos.clearLayers();STATE.layers.recintoPoligonos.clearLayers();STATE.markers.recintos={};STATE.recintos.forEach(recinto=>{const gActivos=STATE.gendarmes.filter(g=>g.recinto_id===recinto.id&&g.en_linea).length;const dNoAut=STATE.dispositivos.filter(d=>d.recinto_id===recinto.id&&!d.es_autorizado).length;const aActivas=STATE.alertas.filter(a=>a.recinto_id===recinto.id&&!a.resuelta).length;const aCriticas=STATE.alertas.filter(a=>a.recinto_id===recinto.id&&a.severidad==='critica'&&!a.resuelta).length;const drActivos=STATE.drones.filter(d=>d.recinto_id===recinto.id&&(d.estado==='en_vuelo'||d.estado==='patrulla')).length;let color='#43a047',pulso='';if(aCriticas>0){color='#e53935';pulso='animation:pulse 1.5s infinite;';}else if(aActivas>0){color='#ffa726';}const icon=L.divIcon({html:'<div style="position:relative;"><div style="width:48px;height:48px;background:'+color+';border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.4);'+pulso+'">🏛️</div>'+(aActivas>0?'<div style="position:absolute;top:-4px;right:-4px;background:'+color+';color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid #fff;">'+aActivas+'</div>':'')+'</div>',className:'marker-icon',iconSize:[48,48],iconAnchor:[24,24]});const marker=L.marker([recinto.latitud,recinto.longitud],{icon}).addTo(STATE.layers.recintos).bindPopup('<div style="color:#000;font-family:sans-serif;min-width:250px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:28px;">🏛️</span><div><strong style="font-size:16px;">'+recinto.nombre+'</strong><br><span style="font-size:11px;color:#666;">'+(recinto.direccion||'')+'</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;"><div style="background:#e8f5e9;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#2e7d32;">'+gActivos+'</div><div style="font-size:10px;color:#666;">👮 Gendarmes</div></div><div style="background:#ffebee;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#c62828;">'+dNoAut+'</div><div style="font-size:10px;color:#666;">📱 No autorizados</div></div><div style="background:#fff3e0;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#e65100;">'+aActivas+'</div><div style="font-size:10px;color:#666;">🔔 Alertas</div></div><div style="background:#e3f2fd;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#1565c0;">'+drActivos+'</div><div style="font-size:10px;color:#666;">🚁 Drones</div></div></div><button onclick="cambiarAVistaRecinto(\''+recinto.id+'\');document.getElementById(\'recinto-select\').value=\''+recinto.id+'\';" style="width:100%;margin-top:8px;padding:6px;background:#1a237e;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Ver detalle del recinto</button></div>');marker.on('click',()=>{document.getElementById('recinto-select').value=recinto.id;cambiarAVistaRecinto(recinto.id);});STATE.markers.recintos[recinto.id]=marker;});}
-  function dibujarZonas(){STATE.layers.zonas.clearLayers();STATE.markers.zonas={};const colorMap={patio:'#43a047',celda:'#e53935',acceso:'#ffa726',enfermeria:'#29b6f6',perimetro:'#ff7043'};STATE.zonas.forEach(z=>{if(STATE.recintoActivo&&z.recinto_id!==STATE.recintoActivo.id)return;const color=colorMap[z.tipo]||'#9e9e9e';L.circle([z.latitud,z.longitud],{radius:z.radio,color:color,fillColor:color,fillOpacity:0.15,weight:2,dashArray:'5,5'}).addTo(STATE.layers.zonas);const icon=L.divIcon({html:'<div style="width:24px;height:24px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏘️</div>',className:'marker-icon',iconSize:[24,24],iconAnchor:[12,12]});L.marker([z.latitud,z.longitud],{icon}).addTo(STATE.layers.zonas).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+z.nombre+'</strong><br><span style="font-size:11px;color:#666;">Tipo: '+z.tipo+'</span></div>');});}
-  function dibujarGendarmes(){STATE.layers.gendarmes.clearLayers();STATE.markers.gendarmes={};STATE.gendarmes.forEach(g=>{if(STATE.recintoActivo&&g.recinto_id!==STATE.recintoActivo.id)return;const enLinea=g.en_linea;const color=enLinea?'#43a047':'#e53935';const icon=L.divIcon({html:'<div style="width:32px;height:32px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(enLinea?'animation:pulse 2s infinite;':'')+'">👮</div>',className:'marker-icon',iconSize:[32,32],iconAnchor:[16,16]});L.marker([g.ultima_ubicacion_lat,g.ultima_ubicacion_lng],{icon}).addTo(STATE.layers.gendarmes).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+g.nombre+' '+g.apellido+'</strong><br><span style="font-size:11px;color:#666;">'+g.cargo+'</span><br><span style="font-size:11px;color:#666;">📍 '+g.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+g.recinto_nombre+'</span><br><span style="font-size:11px;color:'+(enLinea?'#43a047':'#e53935')+';">'+(enLinea?'● En línea':'● Sin señal')+'</span></div>');});}
-  function dibujarDispositivos(){STATE.layers.dispositivos.clearLayers();STATE.markers.dispositivos={};STATE.dispositivos.forEach(d=>{if(STATE.recintoActivo&&d.recinto_id!==STATE.recintoActivo.id)return;const noAut=!d.es_autorizado;const color=noAut?'#e53935':'#29b6f6';const icon=L.divIcon({html:'<div style="width:28px;height:28px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(noAut?'animation:pulse 1.5s infinite;':'')+'">📱</div>',className:'marker-icon',iconSize:[28,28],iconAnchor:[14,14]});L.marker([d.latitud,d.longitud],{icon}).addTo(STATE.layers.dispositivos).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+d.fabricante+' '+d.modelo+'</strong><br><span style="font-size:11px;color:#666;">📶 '+Math.round(d.senial_db)+'dB</span><br><span style="font-size:11px;color:#666;">📍 '+d.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+d.recinto_nombre+'</span><br><span style="font-size:11px;color:'+(noAut?'#e53935':'#43a047')+';">'+(noAut?'❌ No autorizado':'✅ Autorizado')+'</span></div>');});}
-  function dibujarDrones(){STATE.layers.drones.clearLayers();STATE.markers.drones={};STATE.drones.forEach(d=>{if(STATE.recintoActivo&&d.recinto_id!==STATE.recintoActivo.id)return;const enVuelo=d.estado==='en_vuelo'||d.estado==='patrulla';const color=enVuelo?'#ffa726':(d.estado==='en_base'?'#43a047':'#e53935');const icon=L.divIcon({html:'<div style="width:32px;height:32px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(enVuelo?'animation:pulse 2s infinite;':'')+'">🚁</div>',className:'marker-icon',iconSize:[32,32],iconAnchor:[16,16]});L.marker([d.latitud,d.longitud],{icon}).addTo(STATE.layers.drones).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+d.nombre+'</strong><br><span style="font-size:11px;color:#666;">'+getEstadoDronIcon(d.estado)+' '+d.estado+'</span><br><span style="font-size:11px;color:#666;">🔋 '+Math.round(d.bateria)+'% · 📏 '+Math.round(d.altitud)+'m · 💨 '+Math.round(d.velocidad)+'km/h</span><br><span style="font-size:11px;color:#666;">🏛️ '+d.recinto_nombre+'</span></div>');marker.on('click',()=>seleccionarDron(d.id));STATE.markers.drones[d.id]=marker;});}
-  function dibujarAlertas(){STATE.layers.alertas.clearLayers();STATE.markers.alertas={};STATE.alertas.forEach(a=>{if(STATE.recintoActivo&&a.recinto_id!==STATE.recintoActivo.id)return;const colorMap={critica:'#e53935',alta:'#ffa726',media:'#29b6f6',baja:'#43a047'};const color=colorMap[a.severidad]||'#ffa726';const icon=L.divIcon({html:'<div style="width:36px;height:36px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pulse 1s infinite;">🔔</div>',className:'marker-icon',iconSize:[36,36],iconAnchor:[18,18]});L.marker([a.latitud,a.longitud],{icon}).addTo(STATE.layers.alertas).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+a.titulo+'</strong><br><span style="font-size:11px;color:#666;">'+a.descripcion+'</span><br><span style="font-size:11px;color:#666;">📍 '+a.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+a.recinto_nombre+'</span><br><span style="font-size:11px;color:#666;">⏱️ '+formatDate(a.created_at)+'</span></div>');marker.on('click',()=>abrirModal(a.titulo,'<p>'+a.descripcion+'</p><p style="color:#666;font-size:12px;">📍 '+a.zona_nombre+'<br>🏛️ '+a.recinto_nombre+'<br>⏱️ '+formatDate(a.created_at)+'</p>',a.id));STATE.markers.alertas[a.id]=marker;});}
-  function cambiarAVistaRecinto(recintoId){const recinto=STATE.recintos.find(r=>r.id===recintoId);if(!recinto)return;STATE.recintoActivo=recinto;STATE.vistaActual='recinto';document.getElementById('btn-vista-nacional').style.display='inline-flex';document.getElementById('vista-indicator').textContent='🏛️ '+recinto.nombre;document.getElementById('vista-indicator').className='vista-indicator recinto';STATE.map.setView([recinto.latitud,recinto.longitud],CONFIG.MAP_ZOOM_RECINTO);dibujarTodo();renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();}
-  function cambiarAVistaNacional(){STATE.recintoActivo=null;STATE.vistaActual='nacional';document.getElementById('btn-vista-nacional').style.display='none';document.getElementById('vista-indicator').textContent='🇨🇱 Vista Nacional - Todos los recintos';document.getElementById('vista-indicator').className='vista-indicator nacional';STATE.map.setView(CONFIG.MAP_CENTER,CONFIG.MAP_ZOOM);dibujarTodo();renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();}
-  function renderizarGendarmes(){const container=document.getElementById('gendarmes-list');const count=document.getElementById('gendarmes-count');let lista=STATE.gendarmes;if(STATE.recintoActivo)lista=lista.filter(g=>g.recinto_id===STATE.recintoActivo.id);count.textContent=lista.length;if(!lista.length){container.innerHTML='<div class="loading">Sin gendarmes</div>';return;}container.innerHTML=lista.map(g=>{const enLinea=g.en_linea;return'<div class="list-item" onclick="STATE.map.setView(['+g.ultima_ubicacion_lat+','+g.ultima_ubicacion_lng+'],18)"><div class="avatar '+(enLinea?'online':'offline')+'">👮</div><div class="info"><div class="name">'+g.nombre+' '+g.apellido+'</div><div class="detail">'+g.cargo+' · '+g.zona_nombre+'</div></div><span class="status-dot '+(enLinea?'online':'offline')+'"></span></div>';}).join('');}
-  function renderizarDispositivos(){const container=document.getElementById('dispositivos-list');const count=document.getElementById('dispositivos-count');let lista=STATE.dispositivos;if(STATE.recintoActivo)lista=lista.filter(d=>d.recinto_id===STATE.recintoActivo.id);const noAut=lista.filter(d=>!d.es_autorizado);count.textContent=noAut.length;if(!lista.length){container.innerHTML='<div class="loading">Sin dispositivos</div>';return;}container.innerHTML=lista.map(d=>{const peligroso=!d.es_autorizado;return'<div class="list-item" onclick="STATE.map.setView(['+d.latitud+','+d.longitud+'],18)"><div class="avatar '+(peligroso?'danger':'info')+'">📱</div><div class="info"><div class="name">'+d.fabricante+' '+d.modelo+'</div><div class="detail">'+Math.round(d.senial_db)+'dB '+(peligroso?'· ❌ No autorizado':'· ✅ Autorizado')+'</div></div><span class="status-dot '+(peligroso?'offline':'online')+'"></span></div>';}).join('');}
-  function renderizarDrones(){const container=document.getElementById('drones-list');const count=document.getElementById('drones-count');let lista=STATE.drones;if(STATE.recintoActivo)lista=lista.filter(d=>d.recinto_id===STATE.recintoActivo.id);count.textContent=lista.length;if(!lista.length){container.innerHTML='<div class="loading">Sin drones</div>';return;}container.innerHTML=lista.map(d=>{const estadoClass=getEstadoDronClass(d.estado);return'<div class="list-item" onclick="seleccionarDron(\''+d.id+'\')"><div class="avatar '+estadoClass+'">🚁</div><div class="info"><div class="name">'+d.nombre+'</div><div class="detail">'+getEstadoDronIcon(d.estado)+' '+d.estado+' · 🔋'+Math.round(d.bateria)+'%</div></div><span class="status-dot '+estadoClass+'"></span></div>';}).join('');actualizarSelectorDrones();}
-  function renderizarAlertas(){const container=document.getElementById('alertas-list');const count=document.getElementById('alertas-count');let lista=STATE.alertas;if(STATE.recintoActivo)lista=lista.filter(a=>a.recinto_id===STATE.recintoActivo.id);count.textContent=lista.length;if(!lista.length){container.innerHTML='<div class="loading">Sin alertas activas ✅</div>';return;}container.innerHTML=lista.map(a=>{return'<div class="alerta-item '+getSeveridadClass(a.severidad)+'" onclick="abrirModal(\''+a.titulo+'\',\'<p>'+a.descripcion+'</p><p style=\\\'color:#666;font-size:12px;\\\'>📍 '+a.zona_nombre+'<br>🏛️ '+a.recinto_nombre+'<br>⏱️ '+formatDate(a.created_at)+'</p>\',\''+a.id+'\')"><span class="alerta-icon">'+getTipoAlertaIcon(a.tipo)+'</span><div class="alerta-content"><div class="alerta-titulo">'+a.titulo+'</div><div class="alerta-desc">'+a.descripcion+'</div><div class="alerta-time">'+formatDate(a.created_at)+' · '+a.zona_nombre+'</div></div></div>';}).join('');}
-  function seleccionarDron(dronId){const dron=STATE.drones.find(d=>d.id===dronId);if(!dron)return;STATE.dronSeleccionado=dron;document.getElementById('dron-select').value=dronId;document.getElementById('dron-estado').textContent=getEstadoDronIcon(dron.estado)+' '+dron.estado;document.getElementById('dron-bateria').textContent=Math.round(dron.bateria)+'%';document.getElementById('dron-altitud').textContent=Math.round(dron.altitud)+'m';document.getElementById('dron-velocidad').textContent=Math.round(dron.velocidad)+' km/h';document.querySelectorAll('.btn-dron').forEach(b=>b.disabled=false);document.querySelector('.btn-despegar').disabled=dron.estado!=='en_base';document.querySelector('.btn-aterrizar').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);document.querySelector('.btn-patrulla').disabled=dron.estado!=='en_base';document.querySelector('.btn-regresar').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);document.querySelector('.btn-camara').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);if(dron.latitud&&dron.longitud)STATE.map.setView([dron.latitud,dron.longitud],18);}
-  document.getElementById('dron-select').addEventListener('change',e=>{if(e.target.value)seleccionarDron(e.target.value);else deshabilitarBotonesDron();});
-  function deshabilitarBotonesDron(){document.querySelectorAll('.btn-dron').forEach(b=>b.disabled=true);document.getElementById('dron-estado').textContent='-';document.getElementById('dron-bateria').textContent='-';document.getElementById('dron-altitud').textContent='-';document.getElementById('dron-velocidad').textContent='-';STATE.dronSeleccionado=null;}
-  function actualizarSelectorDrones(){const select=document.getElementById('dron-select');const current=select.value;select.innerHTML='<option value="">Seleccionar dron...</option>';STATE.drones.forEach(d=>{const opt=document.createElement('option');opt.value=d.id;opt.textContent=d.nombre+' ('+d.estado+')';select.appendChild(opt);});if(current)select.value=current;}
-  function comandoDron(comando){if(!STATE.dronSeleccionado){mostrarToast('❌ Seleccione un dron primero','alta');return;}const dron=STATE.dronSeleccionado;if(comando==='despegar'){dron.estado='en_vuelo';dron.altitud=30+Math.random()*50;dron.velocidad=10+Math.random()*20;}else if(comando==='aterrizar'){dron.estado='en_base';dron.altitud=0;dron.velocidad=0;}else if(comando==='iniciar_patrulla'){dron.estado='patrulla';dron.altitud=40+Math.random()*40;dron.velocidad=15+Math.random()*15;}else if(comando==='regresar_base'){dron.estado='en_base';dron.altitud=0;dron.velocidad=0;dron.latitud=STATE.recintos.find(r=>r.id===dron.recinto_id).latitud;dron.longitud=STATE.recintos.find(r=>r.id===dron.recinto_id).longitud;}else if(comando==='activar_camara'){dron.camara_activa=!dron.camara_activa;mostrarToast('📷 Cámara '+(dron.camara_activa?'activada':'desactivada'),'media');}seleccionarDron(dron.id);renderizarDrones();dibujarDrones();mostrarToast('🚁 Comando \''+comando+'\' ejecutado en '+dron.nombre,'media');}
-  function actualizarUI(){const select=document.getElementById('recinto-select');STATE.recintos.forEach(r=>{const opt=document.createElement('option');opt.value=r.id;opt.textContent='🏛️ '+r.nombre;select.appendChild(opt);});renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();actualizarStats();}
-  function actualizarStats(){const gActivos=STATE.gendarmes.filter(g=>g.en_linea).length;const gInactivos=STATE.gendarmes.length-gActivos;const dNoAut=STATE.dispositivos.filter(d=>!d.es_autorizado).length;const drVuelo=STATE.drones.filter(d=>d.estado==='en_vuelo'||d.estado==='patrulla').length;document.getElementById('stat-recinto').querySelector('.stat-value').textContent=STATE.recintos.length;document.getElementById('stat-gendarmes').querySelector('.stat-value').textContent=STATE.gendarmes.length;document.getElementById('stat-dispositivos').querySelector('.stat-value').textContent=STATE.dispositivos.length;document.getElementById('stat-alertas').querySelector('.stat-value').textContent=STATE.alertas.length;document.getElementById('stat-drones').querySelector('.stat-value').textContent=STATE.drones.length;document.getElementById('stat-gendarmes-activos').textContent=gActivos;document.getElementById('stat-gendarmes-inactivos').textContent=gInactivos;document.getElementById('stat-dispositivos-no-autorizados').textContent=dNoAut;document.getElementById('stat-drones-vuelo').textContent=drVuelo;}
-  document.addEventListener('DOMContentLoaded',()=>{console.log('🔒 SISGEN - Dashboard Estático');cargarDatos();});
-  </script>
+<header class="top-bar">
+<div class="logo">
+<span class="logo-icon">🇨🇱</span>
+<div class="logo-text">
+<h1>SISGEN</h1>
+<span class="subtitle">Sistema de Gestión de Seguridad Penitenciaria · Gendarmería de Chile</span>
+</div>
+</div>
+<div class="header-stats">
+<div class="stat-item" id="stat-recinto"><span class="stat-value">0</span><span class="stat-label">Recintos</span></div>
+<div class="stat-item" id="stat-gendarmes"><span class="stat-value">0</span><span class="stat-label">Gendarmes</span></div>
+<div class="stat-item" id="stat-dispositivos"><span class="stat-value">0</span><span class="stat-label">Celulares</span></div>
+<div class="stat-item" id="stat-alertas"><span class="stat-value">0</span><span class="stat-label">Alertas</span></div>
+<div class="stat-item" id="stat-drones"><span class="stat-value">0</span><span class="stat-label">Drones</span></div>
+</div>
+<div class="header-actions">
+<span class="connection-status" id="connection-status">● Estático</span>
+<button class="btn-icon" onclick="window.location.reload()" title="Recargar">🔄</button>
+</div>
+</header>
+<div class="main-container">
+<aside class="sidebar-left">
+<div class="panel panel-gendarmes">
+<div class="panel-header"><h3>👮 Gendarmes en Línea</h3><span class="badge" id="gendarmes-count">0</span></div>
+<div class="panel-body" id="gendarmes-list"><div class="loading">Cargando...</div></div>
+</div>
+<div class="panel panel-dispositivos">
+<div class="panel-header"><h3>📱 Celulares Detectados</h3><span class="badge badge-danger" id="dispositivos-count">0</span></div>
+<div class="panel-body" id="dispositivos-list"><div class="loading">Cargando...</div></div>
+</div>
+<div class="panel panel-drones">
+<div class="panel-header"><h3>🚁 Drones</h3><span class="badge badge-info" id="drones-count">0</span></div>
+<div class="panel-body" id="drones-list"><div class="loading">Cargando...</div></div>
+</div>
+</aside>
+<main class="map-container">
+<div class="map-toolbar">
+<div class="toolbar-left">
+<button id="btn-vista-nacional" class="btn-back" style="display:none;" title="Volver a vista nacional">← Volver</button>
+<select id="recinto-select" class="form-select"><option value="">🇨🇱 Todos los recintos</option></select>
+<span id="vista-indicator" class="vista-indicator nacional">🇨🇱 Vista Nacional - Todos los recintos</span>
+</div>
+<div class="toolbar-right">
+<label class="toggle-label"><input type="checkbox" id="toggle-gendarmes" checked><span>👮 Gendarmes</span></label>
+<label class="toggle-label"><input type="checkbox" id="toggle-dispositivos" checked><span>📱 Celulares</span></label>
+<label class="toggle-label"><input type="checkbox" id="toggle-drones" checked><span>🚁 Drones</span></label>
+<label class="toggle-label"><input type="checkbox" id="toggle-alertas" checked><span>🔔 Alertas</span></label>
+<label class="toggle-label"><input type="checkbox" id="toggle-zonas" checked><span>🏘️ Zonas</span></label>
+</div>
+</div>
+<div id="map"></div>
+</main>
+<aside class="sidebar-right">
+<div class="panel panel-alertas">
+<div class="panel-header"><h3>🔔 Alertas Activas</h3><span class="badge badge-danger" id="alertas-count">0</span></div>
+<div class="panel-body" id="alertas-list"><div class="loading">Cargando...</div></div>
+</div>
+<div class="panel panel-stats">
+<div class="panel-header"><h3>📊 Estadísticas</h3></div>
+<div class="panel-body">
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-number" id="stat-gendarmes-activos">0</div><div class="stat-desc">Gendarmes Activos</div></div>
+<div class="stat-card stat-warning"><div class="stat-number" id="stat-gendarmes-inactivos">0</div><div class="stat-desc">Sin Señal</div></div>
+<div class="stat-card stat-danger"><div class="stat-number" id="stat-dispositivos-no-autorizados">0</div><div class="stat-desc">Celulares No Autorizados</div></div>
+<div class="stat-card stat-info"><div class="stat-number" id="stat-drones-vuelo">0</div><div class="stat-desc">Drones en Vuelo</div></div>
+</div>
+</div>
+</div>
+<div class="panel panel-dron-control">
+<div class="panel-header"><h3>🎮 Control de Drones</h3></div>
+<div class="panel-body" id="dron-control-panel">
+<div class="dron-selector"><select id="dron-select" class="form-select"><option value="">Seleccionar dron...</option></select></div>
+<div class="dron-info" id="dron-info">
+<div class="dron-info-row"><span>Estado:</span><span id="dron-estado">-</span></div>
+<div class="dron-info-row"><span>Batería:</span><span id="dron-bateria">-</span></div>
+<div class="dron-info-row"><span>Altitud:</span><span id="dron-altitud">-</span></div>
+<div class="dron-info-row"><span>Velocidad:</span><span id="dron-velocidad">-</span></div>
+</div>
+<div class="dron-buttons">
+<button class="btn-dron btn-despegar" onclick="comandoDron('despegar')" disabled>🛫 Despegar</button>
+<button class="btn-dron btn-aterrizar" onclick="comandoDron('aterrizar')" disabled>🛬 Aterrizar</button>
+<button class="btn-dron btn-patrulla" onclick="comandoDron('iniciar_patrulla')" disabled>🔄 Patrullar</button>
+<button class="btn-dron btn-regresar" onclick="comandoDron('regresar_base')" disabled>🏠 Regresar</button>
+<button class="btn-dron btn-camara" onclick="comandoDron('activar_camara')" disabled>📷 Cámara</button>
+</div>
+</div>
+</div>
+</aside>
+</div>
+<div id="alerta-modal" class="modal hidden">
+<div class="modal-content">
+<div class="modal-header"><h3 id="modal-titulo">Alerta</h3><button class="btn-close" onclick="cerrarModal()">&times;</button></div>
+<div class="modal-body" id="modal-body"></div>
+<div class="modal-footer">
+<button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+<button class="btn btn-primary" onclick="resolverAlerta()">✅ Resolver Alerta</button>
+</div>
+</div>
+</div>
+<div id="toast-container"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ===== DATOS DE CÁRCELES (incrustados) =====
+var DATOS_CARCELES = {"metadata":{"fuente":"Gendarmería de Chile (GENCHI)","total_recintos":66,"total_regiones":16,"actualizacion":"2026-06-03"},"regiones":[{"nombre":"Región de Arica y Parinacota","recintos":[{"nombre":"CDP Arica","direccion":"Av. Santa María 2345, Arica","latitud":-18.478,"longitud":-70.321,"capacidad":600,"seguridad":"media"}]},{"nombre":"Región de Tarapacá","recintos":[{"nombre":"CDP Iquique","direccion":"Av. Arturo Prat 1234, Iquique","latitud":-20.214,"longitud":-70.152,"capacidad":800,"seguridad":"media"},{"nombre":"CDP Pozo Almonte","direccion":"Av. Comercio 567, Pozo Almonte","latitud":-20.256,"longitud":-69.786,"capacidad":150,"seguridad":"baja"}]},{"nombre":"Región de Antofagasta","recintos":[{"nombre":"CDP Antofagasta","direccion":"Av. Argentina 2345, Antofagasta","latitud":-23.651,"longitud":-70.398,"capacidad":900,"seguridad":"media"},{"nombre":"CDP Calama","direccion":"Av. Granaderos 1234, Calama","latitud":-22.462,"longitud":-68.928,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Tocopilla","direccion":"Av. 21 de Mayo 789, Tocopilla","latitud":-22.092,"longitud":-70.198,"capacidad":200,"seguridad":"baja"}]},{"nombre":"Región de Atacama","recintos":[{"nombre":"CDP Copiapó","direccion":"Av. Juan Martínez 1234, Copiapó","latitud":-27.367,"longitud":-70.332,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Vallenar","direccion":"Av. Ramírez 789, Vallenar","latitud":-28.575,"longitud":-70.759,"capacidad":250,"seguridad":"media"},{"nombre":"CDP Chañaral","direccion":"Av. Merino Jarpa 456, Chañaral","latitud":-26.345,"longitud":-70.620,"capacidad":120,"seguridad":"baja"}]},{"nombre":"Región de Coquimbo","recintos":[{"nombre":"CDP La Serena","direccion":"Av. Francisco de Aguirre 2345, La Serena","latitud":-29.903,"longitud":-71.250,"capacidad":600,"seguridad":"media"},{"nombre":"CDP Coquimbo","direccion":"Av. Costanera 1234, Coquimbo","latitud":-29.953,"longitud":-71.343,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Ovalle","direccion":"Av. Libertad 789, Ovalle","latitud":-30.598,"longitud":-71.200,"capacidad":300,"seguridad":"media"},{"nombre":"CDP Illapel","direccion":"Av. Constitución 456, Illapel","latitud":-31.633,"longitud":-71.170,"capacidad":150,"seguridad":"baja"}]},{"nombre":"Región de Valparaíso","recintos":[{"nombre":"CDP Valparaíso","direccion":"Av. Argentina 975, Cerro Cordillera, Valparaíso","latitud":-33.047,"longitud":-71.617,"capacidad":800,"seguridad":"media"},{"nombre":"CDP San Antonio","direccion":"Av. Barros Luco 2101, San Antonio","latitud":-33.593,"longitud":-71.613,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Viña del Mar","direccion":"Av. Libertad 1234, Viña del Mar","latitud":-33.025,"longitud":-71.552,"capacidad":350,"seguridad":"media"},{"nombre":"CDP Los Andes","direccion":"Av. Argentina 456, Los Andes","latitud":-32.834,"longitud":-70.598,"capacidad":200,"seguridad":"media"},{"nombre":"CDP San Felipe","direccion":"Av. Yungay 789, San Felipe","latitud":-32.750,"longitud":-70.725,"capacidad":180,"seguridad":"media"},{"nombre":"CDP Quillota","direccion":"Av. Condell 567, Quillota","latitud":-32.880,"longitud":-71.248,"capacidad":250,"seguridad":"media"},{"nombre":"CDP Quilpué","direccion":"Av. Blanco Encalada 890, Quilpué","latitud":-33.048,"longitud":-71.442,"capacidad":200,"seguridad":"media"},{"nombre":"CDP La Ligua","direccion":"Av. Prat 456, La Ligua","latitud":-32.452,"longitud":-71.231,"capacidad":120,"seguridad":"baja"}]},{"nombre":"Región Metropolitana","recintos":[{"nombre":"CDP Santiago Sur (Ex Penitenciaría de Santiago)","direccion":"Av. Pedro Montt 1600, Santiago Centro","latitud":-33.456,"longitud":-70.648,"capacidad":5000,"seguridad":"alta"},{"nombre":"CCP Colina I","direccion":"Ruta 5 Norte, Km 25, Colina","latitud":-33.202,"longitud":-70.675,"capacidad":1500,"seguridad":"alta"},{"nombre":"CCP Colina II","direccion":"Ruta 5 Norte, Km 28, Colina","latitud":-33.185,"longitud":-70.680,"capacidad":1200,"seguridad":"alta"},{"nombre":"CDP San Bernardo","direccion":"Av. Colón 1234, San Bernardo","latitud":-33.592,"longitud":-70.700,"capacidad":600,"seguridad":"media"},{"nombre":"CDP Puente Alto","direccion":"Av. Concha y Toro 2345, Puente Alto","latitud":-33.613,"longitud":-70.575,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Talagante","direccion":"Av. Balmaceda 890, Talagante","latitud":-33.664,"longitud":-70.930,"capacidad":300,"seguridad":"media"},{"nombre":"CDP Melipilla","direccion":"Av. Vicuña Mackenna 567, Melipilla","latitud":-33.686,"longitud":-71.215,"capacidad":250,"seguridad":"media"}]},{"nombre":"Región del Libertador General Bernardo O'Higgins","recintos":[{"nombre":"CDP Rancagua","direccion":"Av. Libertador O'Higgins 1234, Rancagua","latitud":-34.170,"longitud":-70.745,"capacidad":700,"seguridad":"media"},{"nombre":"CDP San Fernando","direccion":"Av. Manuel Rodríguez 789, San Fernando","latitud":-34.585,"longitud":-70.988,"capacidad":350,"seguridad":"media"},{"nombre":"CDP Santa Cruz","direccion":"Av. Errázuriz 456, Santa Cruz","latitud":-34.638,"longitud":-71.365,"capacidad":200,"seguridad":"media"},{"nombre":"CDP Rengo","direccion":"Av. Caupolicán 567, Rengo","latitud":-34.410,"longitud":-70.860,"capacidad":180,"seguridad":"baja"},{"nombre":"CDP Pichilemu","direccion":"Av. Agustín Urrutia 234, Pichilemu","latitud":-34.387,"longitud":-72.005,"capacidad":100,"seguridad":"baja"}]},{"nombre":"Región del Maule","recintos":[{"nombre":"CDP Talca","direccion":"Av. 2 Sur 1234, Talca","latitud":-35.427,"longitud":-71.655,"capacidad":800,"seguridad":"media"},{"nombre":"CDP Curicó","direccion":"Av. Alessandri 789, Curicó","latitud":-34.983,"longitud":-71.239,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Linares","direccion":"Av. Independencia 567, Linares","latitud":-35.847,"longitud":-71.593,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Constitución","direccion":"Av. Costanera 345, Constitución","latitud":-35.333,"longitud":-72.417,"capacidad":150,"seguridad":"baja"},{"nombre":"CDP Cauquenes","direccion":"Av. San Martín 456, Cauquenes","latitud":-35.967,"longitud":-72.317,"capacidad":200,"seguridad":"media"},{"nombre":"CDP Parral","direccion":"Av. Ignacio Carrera Pinto 234, Parral","latitud":-36.140,"longitud":-71.830,"capacidad":150,"seguridad":"baja"}]},{"nombre":"Región de Ñuble","recintos":[{"nombre":"CDP Chillán","direccion":"Av. O'Higgins 1234, Chillán","latitud":-36.607,"longitud":-72.103,"capacidad":600,"seguridad":"media"},{"nombre":"CDP San Carlos","direccion":"Av. Libertad 567, San Carlos","latitud":-36.425,"longitud":-71.958,"capacidad":200,"seguridad":"media"}]},{"nombre":"Región del Biobío","recintos":[{"nombre":"CDP Concepción (El Manzano)","direccion":"Camino a Penco s/n, Concepción","latitud":-36.827,"longitud":-73.050,"capacidad":1200,"seguridad":"alta"},{"nombre":"CCP Biobío","direccion":"Ruta 160, Km 12, San Pedro de la Paz","latitud":-36.840,"longitud":-73.100,"capacidad":800,"seguridad":"alta"},{"nombre":"CDP Talcahuano","direccion":"Av. Colón 1234, Talcahuano","latitud":-36.724,"longitud":-73.117,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Los Ángeles","direccion":"Av. Alemania 789, Los Ángeles","latitud":-37.470,"longitud":-72.350,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Lebu","direccion":"Av. Matta 456, Lebu","latitud":-37.608,"longitud":-73.653,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Arauco","direccion":"Av. Caupolicán 234, Arauco","latitud":-37.246,"longitud":-73.317,"capacidad":150,"seguridad":"baja"}]},{"nombre":"Región de La Araucanía","recintos":[{"nombre":"CDP Temuco","direccion":"Av. Alemania 567, Temuco","latitud":-38.735,"longitud":-72.590,"capacidad":700,"seguridad":"media"},{"nombre":"CDP Angol","direccion":"Av. O'Higgins 890, Angol","latitud":-37.800,"longitud":-72.710,"capacidad":300,"seguridad":"media"},{"nombre":"CDP Villarrica","direccion":"Av. Pedro de Valdivia 456, Villarrica","latitud":-39.280,"longitud":-72.227,"capacidad":150,"seguridad":"baja"},{"nombre":"CDP Lautaro","direccion":"Av. Manuel Rodríguez 234, Lautaro","latitud":-38.530,"longitud":-72.435,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Nueva Imperial","direccion":"Av. Prat 345, Nueva Imperial","latitud":-38.745,"longitud":-72.950,"capacidad":100,"seguridad":"baja"}]},{"nombre":"Región de Los Ríos","recintos":[{"nombre":"CDP Valdivia","direccion":"Av. España 1234, Valdivia","latitud":-39.814,"longitud":-73.246,"capacidad":500,"seguridad":"media"},{"nombre":"CDP La Unión","direccion":"Av. Ramírez 789, La Unión","latitud":-40.293,"longitud":-73.082,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Río Bueno","direccion":"Av. Balmaceda 234, Río Bueno","latitud":-40.335,"longitud":-72.955,"capacidad":100,"seguridad":"baja"}]},{"nombre":"Región de Los Lagos","recintos":[{"nombre":"CDP Puerto Montt","direccion":"Av. Diego Portales 1234, Puerto Montt","latitud":-41.472,"longitud":-72.939,"capacidad":600,"seguridad":"media"},{"nombre":"CDP Osorno","direccion":"Av. Mackenna 789, Osorno","latitud":-40.573,"longitud":-73.133,"capacidad":500,"seguridad":"media"},{"nombre":"CDP Castro","direccion":"Av. Pedro Montt 456, Castro","latitud":-42.482,"longitud":-73.764,"capacidad":250,"seguridad":"media"},{"nombre":"CDP Ancud","direccion":"Av. Libertad 345, Ancud","latitud":-41.869,"longitud":-73.820,"capacidad":150,"seguridad":"baja"},{"nombre":"CDP Puerto Varas","direccion":"Av. Gramado 234, Puerto Varas","latitud":-41.318,"longitud":-72.985,"capacidad":120,"seguridad":"baja"}]},{"nombre":"Región de Aysén del General Carlos Ibáñez del Campo","recintos":[{"nombre":"CDP Coyhaique","direccion":"Av. Ogana 1234, Coyhaique","latitud":-45.571,"longitud":-72.068,"capacidad":300,"seguridad":"media"},{"nombre":"CDP Puerto Aysén","direccion":"Av. Eusebio Lillo 456, Puerto Aysén","latitud":-45.403,"longitud":-72.692,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Chile Chico","direccion":"Av. Bernardo O'Higgins 234, Chile Chico","latitud":-46.541,"longitud":-71.724,"capacidad":80,"seguridad":"baja"}]},{"nombre":"Región de Magallanes y de la Antártica Chilena","recintos":[{"nombre":"CDP Punta Arenas","direccion":"Av. Colón 1234, Punta Arenas","latitud":-53.163,"longitud":-70.911,"capacidad":400,"seguridad":"media"},{"nombre":"CDP Puerto Natales","direccion":"Av. Pedro Montt 456, Puerto Natales","latitud":-51.726,"longitud":-72.506,"capacidad":120,"seguridad":"baja"},{"nombre":"CDP Porvenir","direccion":"Av. Croacia 234, Porvenir","latitud":-53.296,"longitud":-70.366,"capacidad":80,"seguridad":"baja"}]}]};
+
+// ===== CONFIG =====
+var CONFIG={MAP_CENTER:[-33.4489,-70.6693],MAP_ZOOM:6,MAP_ZOOM_RECINTO:16,MAP_MAX_ZOOM:19,MAP_MIN_ZOOM:5};
+var STATE={recintos:[],gendarmes:[],dispositivos:[],drones:[],alertas:[],zonas:[],markers:{gendarmes:{},dispositivos:{},drones:{},alertas:{},zonas:{},recintos:{}},layers:{gendarmes:null,dispositivos:null,drones:null,alertas:null,zonas:null,recintos:null,recintoPoligonos:null},map:null,currentAlertaId:null,dronSeleccionado:null,vistaActual:'nacional',recintoActivo:null};
+
+// ===== UTILIDADES =====
+function formatDate(d){if(!d)return'-';var date=new Date(d);var diff=Math.floor((Date.now()-date)/1000);if(diff<60)return'Ahora';if(diff<3600)return Math.floor(diff/60)+' min';if(diff<86400)return Math.floor(diff/3600)+'h';return date.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function getSeveridadClass(s){return{critica:'critica',alta:'alta',media:'media',baja:'baja'}[s]||'media';}
+function getEstadoDronClass(e){return{en_base:'online',en_vuelo:'online',despegando:'warning',regresando:'warning',patrulla:'online',cargando:'warning',mantenimiento:'offline',perdido:'offline'}[e]||'offline';}
+function getEstadoDronIcon(e){return{en_base:'🅿️',en_vuelo:'✈️',despegando:'🛫',regresando:'🛬',patrulla:'🔄',cargando:'🔋',mantenimiento:'🔧',perdido:'❌'}[e]||'🚁';}
+function getTipoAlertaIcon(t){return{celular_no_autorizado:'📱',gendarme_inactivo:'👮⚠️',dron_detectado:'🚁',movimiento_sospechoso:'👤',puerta_abierta:'🚪',alarma_general:'🔔',dron_bateria_baja:'🔋⚠️',dron_perdido:'🚁❌'}[t]||'🔔';}
+function mostrarToast(msg,sev){var c=document.getElementById('toast-container');var t=document.createElement('div');t.className='toast '+getSeveridadClass(sev||'media');t.innerHTML=msg;c.appendChild(t);setTimeout(function(){t.classList.add('fade-out');setTimeout(function(){t.remove()},300);},5000);}
+function abrirModal(titulo,contenido,alertaId){document.getElementById('modal-titulo').textContent=titulo;document.getElementById('modal-body').innerHTML=contenido;document.getElementById('alerta-modal').classList.remove('hidden');STATE.currentAlertaId=alertaId;}
+function cerrarModal(){document.getElementById('alerta-modal').classList.add('hidden');STATE.currentAlertaId=null;}
+function resolverAlerta(){if(STATE.currentAlertaId){STATE.alertas=STATE.alertas.filter(function(a){return a.id!==STATE.currentAlertaId});renderizarAlertas();actualizarStats();mostrarToast('✅ Alerta resuelta','baja');}cerrarModal();}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrarModal();});
+
+// ===== INICIALIZAR DATOS =====
+function initData(){
+  STATE.recintos=[];
+  DATOS_CARCELES.regiones.forEach(function(r){
+    r.recintos.forEach(function(rec){
+      STATE.recintos.push({
+        id:rec.nombre.replace(/[^a-zA-Z0-9]/g,'_'),
+        nombre:rec.nombre,
+        direccion:rec.direccion,
+        latitud:rec.latitud,
+        longitud:rec.longitud,
+        capacidad:rec.capacidad,
+        seguridad:rec.seguridad,
+        region:r.nombre
+      });
+    });
+  });
+  generarDatosSimulados();
+}
+
+// ===== GENERAR DATOS SIMULADOS =====
+function generarDatosSimulados(){
+  var nombres=['Carlos Muñoz','María González','José Rodríguez','Ana Martínez','Luis Pérez','Patricia López','Andrés Silva','Rosa Morales','Diego Vargas','Carmen Rojas','Francisco Soto','Laura Castillo','Manuel Reyes','Sandra Torres','Jorge Herrera','Verónica Castro','Ricardo Ortiz','Daniela Flores','Eduardo Gómez','Paola Medina','Cristian Ruiz','Marcela Díaz','Felipe Álvarez','Angélica Romero','Sebastián Acosta'];
+  var cargos=['Gendarme','Cabo','Sargento','Suboficial','Oficial'];
+  var fabricantes=['Samsung','Xiaomi','Motorola','Huawei','Apple','LG'];
+  var modelos=['Galaxy A54','Redmi Note 12','Moto G84','P60 Pro','iPhone 14','K62'];
+  var tiposAlerta=['celular_no_autorizado','gendarme_inactivo','movimiento_sospechoso','puerta_abierta','dron_detectado'];
+  var severidades=['critica','alta','media','baja'];
+  var estadosDron=['en_base','en_vuelo','patrulla','cargando','mantenimiento'];
+  STATE.gendarmes=[];STATE.dispositivos=[];STATE.drones=[];STATE.alertas=[];STATE.zonas=[];
+  STATE.recintos.forEach(function(recinto,idx){
+    var zonasRecinto=[
+      {id:recinto.id+'_z1',nombre:'Patio Principal',tipo:'patio',latitud:recinto.latitud+0.001,longitud:recinto.longitud+0.001,radio:30},
+      {id:recinto.id+'_z2',nombre:'Módulo A',tipo:'celda',latitud:recinto.latitud-0.001,longitud:recinto.longitud-0.001,radio:20},
+      {id:recinto.id+'_z3',nombre:'Acceso Principal',tipo:'acceso',latitud:recinto.latitud+0.002,longitud:recinto.longitud-0.001,radio:15},
+      {id:recinto.id+'_z4',nombre:'Enfermería',tipo:'enfermeria',latitud:recinto.latitud-0.002,longitud:recinto.longitud+0.002,radio:15},
+      {id:recinto.id+'_z5',nombre:'Perímetro Norte',tipo:'perimetro',latitud:recinto.latitud+0.003,longitud:recinto.longitud,radio:10}
+    ];
+    STATE.zonas.push.apply(STATE.zonas,zonasRecinto);
+    var numG=3+Math.floor(Math.random()*4);
+    for(var i=0;i<numG;i++){
+      var gIdx=(idx*6+i)%nombres.length;
+      var nomApe=nombres[gIdx].split(' ');
+      var activo=Math.random()>0.2;
+      var zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];
+      STATE.gendarmes.push({id:recinto.id+'_g'+i,nombre:nomApe[0],apellido:nomApe[1],rut:Math.floor(1e7+Math.random()*2e7)+'-'+Math.floor(Math.random()*9)+'k',cargo:cargos[Math.floor(Math.random()*cargos.length)],recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,ultima_ubicacion_lat:zona.latitud+(Math.random()-0.5)*0.002,ultima_ubicacion_lng:zona.longitud+(Math.random()-0.5)*0.002,ultimo_heartbeat:new Date(Date.now()-Math.random()*300000).toISOString(),en_linea:activo?1:0});
+    }
+    var numD=1+Math.floor(Math.random()*3);
+    for(var i=0;i<numD;i++){
+      var fIdx=Math.floor(Math.random()*fabricantes.length);
+      var noAut=Math.random()>0.6;
+      var zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];
+      STATE.dispositivos.push({id:recinto.id+'_d'+i,fabricante:fabricantes[fIdx],modelo:modelos[fIdx],tipo_dispositivo:'celular',es_autorizado:noAut?0:1,recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,latitud:zona.latitud+(Math.random()-0.5)*0.003,longitud:zona.longitud+(Math.random()-0.5)*0.003,senial_db:-40-Math.random()*40,ultima_deteccion:new Date(Date.now()-Math.random()*600000).toISOString()});
+    }
+    var numDr=1+Math.floor(Math.random()*2);
+    for(var i=0;i<numDr;i++){
+      var est=estadosDron[Math.floor(Math.random()*estadosDron.length)];
+      var enVuelo=est==='en_vuelo'||est==='patrulla';
+      STATE.drones.push({id:recinto.id+'_dr'+i,nombre:'Dron-'+recinto.nombre.substring(0,3).toUpperCase()+'-'+(i+1),modelo:'DJI Matrice 30T',recinto_id:recinto.id,recinto_nombre:recinto.nombre,estado:est,bateria:20+Math.random()*80,altitud:enVuelo?20+Math.random()*80:0,velocidad:enVuelo?5+Math.random()*25:0,latitud:enVuelo?recinto.latitud+(Math.random()-0.5)*0.01:recinto.latitud,longitud:enVuelo?recinto.longitud+(Math.random()-0.5)*0.01:recinto.longitud,modo_vuelo:enVuelo?'automático':'manual',camara_activa:enVuelo?Math.random()>0.3:false});
+    }
+    var numA=Math.floor(Math.random()*3);
+    for(var i=0;i<numA;i++){
+      var tipo=tiposAlerta[Math.floor(Math.random()*tiposAlerta.length)];
+      var sev=severidades[Math.floor(Math.random()*severidades.length)];
+      var zona=zonasRecinto[Math.floor(Math.random()*zonasRecinto.length)];
+      var titulos={celular_no_autorizado:'Celular no autorizado detectado',gendarme_inactivo:'Gendarme sin señal',movimiento_sospechoso:'Movimiento sospechoso',puerta_abierta:'Puerta de seguridad abierta',dron_detectado:'Dron no identificado'};
+      STATE.alertas.push({id:recinto.id+'_a'+i,titulo:titulos[tipo]||'Alerta de seguridad',descripcion:'Detectado en '+zona.nombre+' del recinto '+recinto.nombre,tipo:tipo,severidad:sev,recinto_id:recinto.id,recinto_nombre:recinto.nombre,zona_nombre:zona.nombre,latitud:zona.latitud,longitud:zona.longitud,created_at:new Date(Date.now()-Math.random()*3600000).toISOString(),resuelta:0});
+    }
+  });
+}
+
+// ===== MAPA =====
+function initMap(){
+  STATE.map=L.map('map',{center:CONFIG.MAP_CENTER,zoom:CONFIG.MAP_ZOOM,maxZoom:CONFIG.MAP_MAX_ZOOM,minZoom:CONFIG.MAP_MIN_ZOOM,zoomControl:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(STATE.map);
+  STATE.layers.recintos=L.layerGroup().addTo(STATE.map);
+  STATE.layers.recintoPoligonos=L.layerGroup().addTo(STATE.map);
+  STATE.layers.zonas=L.layerGroup().addTo(STATE.map);
+  STATE.layers.gendarmes=L.layerGroup().addTo(STATE.map);
+  STATE.layers.dispositivos=L.layerGroup().addTo(STATE.map);
+  STATE.layers.drones=L.layerGroup().addTo(STATE.map);
+  STATE.layers.alertas=L.layerGroup().addTo(STATE.map);
+  document.getElementById('toggle-gendarmes').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.gendarmes);else STATE.map.removeLayer(STATE.layers.gendarmes);});
+  document.getElementById('toggle-dispositivos').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.dispositivos);else STATE.map.removeLayer(STATE.layers.dispositivos);});
+  document.getElementById('toggle-drones').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.drones);else STATE.map.removeLayer(STATE.layers.drones);});
+  document.getElementById('toggle-alertas').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.alertas);else STATE.map.removeLayer(STATE.layers.alertas);});
+  document.getElementById('toggle-zonas').addEventListener('change',function(e){if(e.target.checked)STATE.map.addLayer(STATE.layers.zonas);else STATE.map.removeLayer(STATE.layers.zonas);});
+  document.getElementById('recinto-select').addEventListener('change',function(e){if(e.target.value)cambiarAVistaRecinto(e.target.value);else cambiarAVistaNacional();});
+  document.getElementById('btn-vista-nacional').addEventListener('click',function(){document.getElementById('recinto-select').value='';cambiarAVistaNacional();});
+  dibujarTodo();
+}
+
+function dibujarTodo(){dibujarRecintos();dibujarZonas();dibujarGendarmes();dibujarDispositivos();dibujarDrones();dibujarAlertas();}
+
+function dibujarRecintos(){
+  STATE.layers.recintos.clearLayers();
+  STATE.layers.recintoPoligonos.clearLayers();
+  STATE.markers.recintos={};
+  STATE.recintos.forEach(function(recinto){
+    var gActivos=STATE.gendarmes.filter(function(g){return g.recinto_id===recinto.id&&g.en_linea}).length;
+    var dNoAut=STATE.dispositivos.filter(function(d){return d.recinto_id===recinto.id&&!d.es_autorizado}).length;
+    var aActivas=STATE.alertas.filter(function(a){return a.recinto_id===recinto.id&&!a.resuelta}).length;
+    var aCriticas=STATE.alertas.filter(function(a){return a.recinto_id===recinto.id&&a.severidad==='critica'&&!a.resuelta}).length;
+    var drActivos=STATE.drones.filter(function(d){return d.recinto_id===recinto.id&&(d.estado==='en_vuelo'||d.estado==='patrulla')}).length;
+    var color='#43a047',pulso='';
+    if(aCriticas>0){color='#e53935';pulso='animation:pulse 1.5s infinite;';}else if(aActivas>0){color='#ffa726';}
+    var icon=L.divIcon({
+      html:'<div style="position:relative;"><div style="width:48px;height:48px;background:'+color+';border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.4);'+pulso+'">🏛️</div>'+(aActivas>0?'<div style="position:absolute;top:-4px;right:-4px;background:'+color+';color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid #fff;">'+aActivas+'</div>':'')+'</div>',
+      className:'marker-icon',iconSize:[48,48],iconAnchor:[24,24]
+    });
+    var marker=L.marker([recinto.latitud,recinto.longitud],{icon}).addTo(STATE.layers.recintos)
+      .bindPopup('<div style="color:#000;font-family:sans-serif;min-width:250px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:28px;">🏛️</span><div><strong style="font-size:16px;">'+recinto.nombre+'</strong><br><span style="font-size:11px;color:#666;">'+(recinto.direccion||'')+'</span><br><span style="font-size:11px;color:#666;">📍 '+recinto.region+'</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;"><div style="background:#e8f5e9;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#2e7d32;">'+gActivos+'</div><div style="font-size:10px;color:#666;">👮 Gendarmes</div></div><div style="background:#ffebee;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#c62828;">'+dNoAut+'</div><div style="font-size:10px;color:#666;">📱 No autorizados</div></div><div style="background:#fff3e0;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#e65100;">'+aActivas+'</div><div style="font-size:10px;color:#666;">🔔 Alertas</div></div><div style="background:#e3f2fd;padding:6px;border-radius:4px;text-align:center;"><div style="font-size:18px;font-weight:bold;color:#1565c0;">'+drActivos+'</div><div style="font-size:10px;color:#666;">🚁 Drones</div></div></div><button onclick="cambiarAVistaRecinto(\''+recinto.id+'\');document.getElementById(\'recinto-select\').value=\''+recinto.id+'\';" style="width:100%;margin-top:8px;padding:6px;background:#1a237e;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Ver detalle del recinto</button></div>');
+    marker.on('click',function(){document.getElementById('recinto-select').value=recinto.id;cambiarAVistaRecinto(recinto.id);});
+    STATE.markers.recintos[recinto.id]=marker;
+  });
+}
+
+function dibujarZonas(){
+  STATE.layers.zonas.clearLayers();
+  STATE.markers.zonas={};
+  var colorMap={patio:'#43a047',celda:'#e53935',acceso:'#ffa726',enfermeria:'#29b6f6',perimetro:'#ff7043'};
+  STATE.zonas.forEach(function(z){
+    if(STATE.recintoActivo&&z.recinto_id!==STATE.recintoActivo.id)return;
+    var color=colorMap[z.tipo]||'#9e9e9e';
+    L.circle([z.latitud,z.longitud],{radius:z.radio,color:color,fillColor:color,fillOpacity:0.15,weight:2,dashArray:'5,5'}).addTo(STATE.layers.zonas);
+    var icon=L.divIcon({html:'<div style="width:24px;height:24px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏘️</div>',className:'marker-icon',iconSize:[24,24],iconAnchor:[12,12]});
+    L.marker([z.latitud,z.longitud],{icon}).addTo(STATE.layers.zonas).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+z.nombre+'</strong><br><span style="font-size:11px;color:#666;">Tipo: '+z.tipo+'</span></div>');
+  });
+}
+
+function dibujarGendarmes(){
+  STATE.layers.gendarmes.clearLayers();
+  STATE.markers.gendarmes={};
+  STATE.gendarmes.forEach(function(g){
+    if(STATE.recintoActivo&&g.recinto_id!==STATE.recintoActivo.id)return;
+    var enLinea=g.en_linea;
+    var color=enLinea?'#43a047':'#e53935';
+    var icon=L.divIcon({html:'<div style="width:32px;height:32px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(enLinea?'animation:pulse 2s infinite;':'')+'">👮</div>',className:'marker-icon',iconSize:[32,32],iconAnchor:[16,16]});
+    L.marker([g.ultima_ubicacion_lat,g.ultima_ubicacion_lng],{icon}).addTo(STATE.layers.gendarmes).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+g.nombre+' '+g.apellido+'</strong><br><span style="font-size:11px;color:#666;">'+g.cargo+'</span><br><span style="font-size:11px;color:#666;">📍 '+g.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+g.recinto_nombre+'</span><br><span style="font-size:11px;color:'+(enLinea?'#43a047':'#e53935')+';">'+(enLinea?'● En línea':'● Sin señal')+'</span></div>');
+  });
+}
+
+function dibujarDispositivos(){
+  STATE.layers.dispositivos.clearLayers();
+  STATE.markers.dispositivos={};
+  STATE.dispositivos.forEach(function(d){
+    if(STATE.recintoActivo&&d.recinto_id!==STATE.recintoActivo.id)return;
+    var noAut=!d.es_autorizado;
+    var color=noAut?'#e53935':'#29b6f6';
+    var icon=L.divIcon({html:'<div style="width:28px;height:28px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(noAut?'animation:pulse-fast 1.5s infinite;':'')+'">📱</div>',className:'marker-icon',iconSize:[28,28],iconAnchor:[14,14]});
+    L.marker([d.latitud,d.longitud],{icon}).addTo(STATE.layers.dispositivos).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+d.fabricante+' '+d.modelo+'</strong><br><span style="font-size:11px;color:#666;">📶 '+Math.round(d.senial_db)+'dB</span><br><span style="font-size:11px;color:#666;">📍 '+d.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+d.recinto_nombre+'</span><br><span style="font-size:11px;color:'+(noAut?'#e53935':'#43a047')+';">'+(noAut?'❌ No autorizado':'✅ Autorizado')+'</span></div>');
+  });
+}
+
+function dibujarDrones(){
+  STATE.layers.drones.clearLayers();
+  STATE.markers.drones={};
+  STATE.drones.forEach(function(d){
+    if(STATE.recintoActivo&&d.recinto_id!==STATE.recintoActivo.id)return;
+    var enVuelo=d.estado==='en_vuelo'||d.estado==='patrulla';
+    var color=enVuelo?'#ffa726':(d.estado==='en_base'?'#43a047':'#e53935');
+    var icon=L.divIcon({html:'<div style="width:32px;height:32px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);'+(enVuelo?'animation:pulse 2s infinite;':'')+'">🚁</div>',className:'marker-icon',iconSize:[32,32],iconAnchor:[16,16]});
+    var marker=L.marker([d.latitud,d.longitud],{icon}).addTo(STATE.layers.drones).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+d.nombre+'</strong><br><span style="font-size:11px;color:#666;">'+getEstadoDronIcon(d.estado)+' '+d.estado+'</span><br><span style="font-size:11px;color:#666;">🔋 '+Math.round(d.bateria)+'% · 📏 '+Math.round(d.altitud)+'m · 💨 '+Math.round(d.velocidad)+'km/h</span><br><span style="font-size:11px;color:#666;">🏛️ '+d.recinto_nombre+'</span></div>');
+    marker.on('click',function(){seleccionarDron(d.id);});
+    STATE.markers.drones[d.id]=marker;
+  });
+}
+
+function dibujarAlertas(){
+  STATE.layers.alertas.clearLayers();
+  STATE.markers.alertas={};
+  STATE.alertas.forEach(function(a){
+    if(STATE.recintoActivo&&a.recinto_id!==STATE.recintoActivo.id)return;
+    var colorMap={critica:'#e53935',alta:'#ffa726',media:'#29b6f6',baja:'#43a047'};
+    var color=colorMap[a.severidad]||'#ffa726';
+    var icon=L.divIcon({html:'<div style="width:36px;height:36px;background:'+color+';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pulse-fast 1s infinite;">🔔</div>',className:'marker-icon',iconSize:[36,36],iconAnchor:[18,18]});
+    var marker=L.marker([a.latitud,a.longitud],{icon}).addTo(STATE.layers.alertas).bindPopup('<div style="color:#000;font-family:sans-serif;"><strong>'+a.titulo+'</strong><br><span style="font-size:11px;color:#666;">'+a.descripcion+'</span><br><span style="font-size:11px;color:#666;">📍 '+a.zona_nombre+'</span><br><span style="font-size:11px;color:#666;">🏛️ '+a.recinto_nombre+'</span><br><span style="font-size:11px;color:#666;">⏱️ '+formatDate(a.created_at)+'</span></div>');
+    marker.on('click',function(){abrirModal(a.titulo,'<p>'+a.descripcion+'</p><p style="color:#666;font-size:12px;">📍 '+a.zona_nombre+'<br>🏛️ '+a.recinto_nombre+'<br>⏱️ '+formatDate(a.created_at)+'</p>',a.id);});
+    STATE.markers.alertas[a.id]=marker;
+  });
+}
+
+// ===== VISTAS =====
+function cambiarAVistaRecinto(recintoId){
+  var recinto=STATE.recintos.find(function(r){return r.id===recintoId});
+  if(!recinto)return;
+  STATE.recintoActivo=recinto;
+  STATE.vistaActual='recinto';
+  document.getElementById('btn-vista-nacional').style.display='inline-flex';
+  document.getElementById('vista-indicator').textContent='🏛️ '+recinto.nombre;
+  document.getElementById('vista-indicator').className='vista-indicator recinto';
+  STATE.map.setView([recinto.latitud,recinto.longitud],CONFIG.MAP_ZOOM_RECINTO);
+  dibujarTodo();
+  renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();
+}
+
+function cambiarAVistaNacional(){
+  STATE.recintoActivo=null;
+  STATE.vistaActual='nacional';
+  document.getElementById('btn-vista-nacional').style.display='none';
+  document.getElementById('vista-indicator').textContent='🇨🇱 Vista Nacional - Todos los recintos';
+  document.getElementById('vista-indicator').className='vista-indicator nacional';
+  STATE.map.setView(CONFIG.MAP_CENTER,CONFIG.MAP_ZOOM);
+  dibujarTodo();
+  renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();
+}
+
+// ===== RENDERIZAR LISTAS =====
+function renderizarGendarmes(){
+  var container=document.getElementById('gendarmes-list');
+  var count=document.getElementById('gendarmes-count');
+  var lista=STATE.gendarmes;
+  if(STATE.recintoActivo)lista=lista.filter(function(g){return g.recinto_id===STATE.recintoActivo.id});
+  count.textContent=lista.length;
+  if(!lista.length){container.innerHTML='<div class="loading">Sin gendarmes</div>';return;}
+  container.innerHTML=lista.map(function(g){
+    var enLinea=g.en_linea;
+    return '<div class="list-item" onclick="STATE.map.setView(['+g.ultima_ubicacion_lat+','+g.ultima_ubicacion_lng+'],18)"><div class="avatar '+(enLinea?'online':'offline')+'">👮</div><div class="info"><div class="name">'+g.nombre+' '+g.apellido+'</div><div class="detail">'+g.cargo+' · '+g.zona_nombre+'</div></div><span class="status-dot '+(enLinea?'online':'offline')+'"></span></div>';
+  }).join('');
+}
+
+function renderizarDispositivos(){
+  var container=document.getElementById('dispositivos-list');
+  var count=document.getElementById('dispositivos-count');
+  var lista=STATE.dispositivos;
+  if(STATE.recintoActivo)lista=lista.filter(function(d){return d.recinto_id===STATE.recintoActivo.id});
+  var noAut=lista.filter(function(d){return !d.es_autorizado});
+  count.textContent=noAut.length;
+  if(!lista.length){container.innerHTML='<div class="loading">Sin dispositivos</div>';return;}
+  container.innerHTML=lista.map(function(d){
+    var peligroso=!d.es_autorizado;
+    return '<div class="list-item" onclick="STATE.map.setView(['+d.latitud+','+d.longitud+'],18)"><div class="avatar '+(peligroso?'danger':'info')+'">📱</div><div class="info"><div class="name">'+d.fabricante+' '+d.modelo+'</div><div class="detail">'+Math.round(d.senial_db)+'dB '+(peligroso?'· ❌ No autorizado':'· ✅ Autorizado')+'</div></div><span class="status-dot '+(peligroso?'offline':'online')+'"></span></div>';
+  }).join('');
+}
+
+function renderizarDrones(){
+  var container=document.getElementById('drones-list');
+  var count=document.getElementById('drones-count');
+  var lista=STATE.drones;
+  if(STATE.recintoActivo)lista=lista.filter(function(d){return d.recinto_id===STATE.recintoActivo.id});
+  count.textContent=lista.length;
+  if(!lista.length){container.innerHTML='<div class="loading">Sin drones</div>';return;}
+  container.innerHTML=lista.map(function(d){
+    var estadoClass=getEstadoDronClass(d.estado);
+    return '<div class="list-item" onclick="seleccionarDron(\''+d.id+'\')"><div class="avatar '+estadoClass+'">🚁</div><div class="info"><div class="name">'+d.nombre+'</div><div class="detail">'+getEstadoDronIcon(d.estado)+' '+d.estado+' · 🔋'+Math.round(d.bateria)+'%</div></div><span class="status-dot '+estadoClass+'"></span></div>';
+  }).join('');
+  actualizarSelectorDrones();
+}
+
+function renderizarAlertas(){
+  var container=document.getElementById('alertas-list');
+  var count=document.getElementById('alertas-count');
+  var lista=STATE.alertas;
+  if(STATE.recintoActivo)lista=lista.filter(function(a){return a.recinto_id===STATE.recintoActivo.id});
+  count.textContent=lista.length;
+  if(!lista.length){container.innerHTML='<div class="loading">Sin alertas activas ✅</div>';return;}
+  container.innerHTML=lista.map(function(a){
+    return '<div class="alerta-item '+getSeveridadClass(a.severidad)+'" onclick="abrirModal(\''+a.titulo+'\',\'<p>'+a.descripcion+'</p><p style=\\\'color:#666;font-size:12px;\\\'>📍 '+a.zona_nombre+'<br>🏛️ '+a.recinto_nombre+'<br>⏱️ '+formatDate(a.created_at)+'</p>\',\''+a.id+'\')"><span class="alerta-icon">'+getTipoAlertaIcon(a.tipo)+'</span><div class="alerta-content"><div class="alerta-titulo">'+a.titulo+'</div><div class="alerta-desc">'+a.descripcion+'</div><div class="alerta-time">'+formatDate(a.created_at)+' · '+a.zona_nombre+'</div></div></div>';
+  }).join('');
+}
+
+// ===== DRONES =====
+function seleccionarDron(dronId){
+  var dron=STATE.drones.find(function(d){return d.id===dronId});
+  if(!dron)return;
+  STATE.dronSeleccionado=dron;
+  document.getElementById('dron-select').value=dronId;
+  document.getElementById('dron-estado').textContent=getEstadoDronIcon(dron.estado)+' '+dron.estado;
+  document.getElementById('dron-bateria').textContent=Math.round(dron.bateria)+'%';
+  document.getElementById('dron-altitud').textContent=Math.round(dron.altitud)+'m';
+  document.getElementById('dron-velocidad').textContent=Math.round(dron.velocidad)+' km/h';
+  document.querySelectorAll('.btn-dron').forEach(function(b){b.disabled=false});
+  document.querySelector('.btn-despegar').disabled=dron.estado!=='en_base';
+  document.querySelector('.btn-aterrizar').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);
+  document.querySelector('.btn-patrulla').disabled=dron.estado!=='en_base';
+  document.querySelector('.btn-regresar').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);
+  document.querySelector('.btn-camara').disabled=!['en_vuelo','despegando','patrulla'].includes(dron.estado);
+  if(dron.latitud&&dron.longitud)STATE.map.setView([dron.latitud,dron.longitud],18);
+}
+
+document.getElementById('dron-select').addEventListener('change',function(e){if(e.target.value)seleccionarDron(e.target.value);else deshabilitarBotonesDron();});
+
+function deshabilitarBotonesDron(){
+  document.querySelectorAll('.btn-dron').forEach(function(b){b.disabled=true});
+  document.getElementById('dron-estado').textContent='-';
+  document.getElementById('dron-bateria').textContent='-';
+  document.getElementById('dron-altitud').textContent='-';
+  document.getElementById('dron-velocidad').textContent='-';
+  STATE.dronSeleccionado=null;
+}
+
+function actualizarSelectorDrones(){
+  var select=document.getElementById('dron-select');
+  var current=select.value;
+  select.innerHTML='<option value="">Seleccionar dron...</option>';
+  STATE.drones.forEach(function(d){
+    var opt=document.createElement('option');
+    opt.value=d.id;
+    opt.textContent=d.nombre+' ('+d.estado+')';
+    select.appendChild(opt);
+  });
+  if(current)select.value=current;
+}
+
+function comandoDron(comando){
+  if(!STATE.dronSeleccionado){mostrarToast('❌ Seleccione un dron primero','alta');return;}
+  var dron=STATE.dronSeleccionado;
+  if(comando==='despegar'){dron.estado='en_vuelo';dron.altitud=30+Math.random()*50;dron.velocidad=10+Math.random()*20;}
+  else if(comando==='aterrizar'){dron.estado='en_base';dron.altitud=0;dron.velocidad=0;}
+  else if(comando==='iniciar_patrulla'){dron.estado='patrulla';dron.altitud=40+Math.random()*40;dron.velocidad=15+Math.random()*15;}
+  else if(comando==='regresar_base'){dron.estado='en_base';dron.altitud=0;dron.velocidad=0;dron.latitud=STATE.recintos.find(function(r){return r.id===dron.recinto_id}).latitud;dron.longitud=STATE.recintos.find(function(r){return r.id===dron.recinto_id}).longitud;}
+  else if(comando==='activar_camara'){dron.camara_activa=!dron.camara_activa;mostrarToast('📷 Cámara '+(dron.camara_activa?'activada':'desactivada'),'media');}
+  seleccionarDron(dron.id);renderizarDrones();dibujarDrones();
+  mostrarToast('🚁 Comando \''+comando+'\' ejecutado en '+dron.nombre,'media');
+}
+
+// ===== UI =====
+function actualizarUI(){
+  var select=document.getElementById('recinto-select');
+  STATE.recintos.forEach(function(r){
+    var opt=document.createElement('option');
+    opt.value=r.id;
+    opt.textContent='🏛️ '+r.nombre+' ('+r.region+')';
+    select.appendChild(opt);
+  });
+  renderizarGendarmes();renderizarDispositivos();renderizarDrones();renderizarAlertas();actualizarStats();
+}
+
+function actualizarStats(){
+  var gActivos=STATE.gendarmes.filter(function(g){return g.en_linea}).length;
+  var gInactivos=STATE.gendarmes.length-gActivos;
+  var dNoAut=STATE.dispositivos.filter(function(d){return !d.es_autorizado}).length;
+  var drVuelo=STATE.drones.filter(function(d){return d.estado==='en_vuelo'||d.estado==='patrulla'}).length;
+  document.getElementById('stat-recinto').querySelector('.stat-value').textContent=STATE.recintos.length;
+  document.getElementById('stat-gendarmes').querySelector('.stat-value').textContent=STATE.gendarmes.length;
+  document.getElementById('stat-dispositivos').querySelector('.stat-value').textContent=STATE.dispositivos.length;
+  document.getElementById('stat-alertas').querySelector('.stat-value').textContent=STATE.alertas.length;
+  document.getElementById('stat-drones').querySelector('.stat-value').textContent=STATE.drones.length;
+  document.getElementById('stat-gendarmes-activos').textContent=gActivos;
+  document.getElementById('stat-gendarmes-inactivos').textContent=gInactivos;
+  document.getElementById('stat-dispositivos-no-autorizados').textContent=dNoAut;
+  document.getElementById('stat-drones-vuelo').textContent=drVuelo;
+}
+
+// ===== INICIO =====
+document.addEventListener('DOMContentLoaded',function(){
+  console.log('🔒 SISGEN - Dashboard Estático');
+  initData();
+  initMap();
+  actualizarUI();
+});
+</script>
 </body>
 </html>

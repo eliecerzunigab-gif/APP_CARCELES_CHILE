@@ -74,14 +74,21 @@ function actualizarMapa() {
 
   if (STATE.recintoActual) {
     const r = STATE.recintoActual;
-    map.setView([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO);
+    // Animación suave hacia el recinto seleccionado
+    map.flyTo([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO, {
+      duration: 1.5,
+      easeLinearity: 0.25
+    });
     if (mostrarZonas) mostrarZonasRecinto(r);
     if (mostrarGendarmes) mostrarGendarmesRecinto(r);
     if (mostrarDispositivos) mostrarDispositivosRecinto(r);
     if (mostrarDrones) mostrarDronesRecinto(r);
     if (mostrarAlertas) mostrarAlertasRecinto(r);
   } else {
-    map.setView(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL);
+    map.flyTo(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL, {
+      duration: 1.5,
+      easeLinearity: 0.25
+    });
     if (mostrarGendarmes) mostrarGendarmesNacional();
     if (mostrarDispositivos) mostrarDispositivosNacional();
     if (mostrarDrones) mostrarDronesNacional();

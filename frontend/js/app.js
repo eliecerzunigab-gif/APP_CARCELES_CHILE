@@ -224,6 +224,12 @@ function setupEventListeners() {
       document.getElementById('btn-vista-nacional').style.display = 'inline-block';
       document.getElementById('vista-indicator').textContent = `📍 ${STATE.recintoActual.nombre}`;
       document.getElementById('vista-indicator').className = 'vista-indicator recinto';
+      // Mostrar toast con información del recinto
+      const gendarmes = STATE.gendarmes.filter(g => g.recinto_id == id).length;
+      const dispositivos = STATE.dispositivos.filter(d => d.recinto_id == id).length;
+      const drones = STATE.drones.filter(d => d.recinto_id == id).length;
+      const alertas = STATE.alertas.filter(a => a.recinto_id == id && !a.resuelta).length;
+      mostrarToast(`📍 <strong>${STATE.recintoActual.nombre}</strong><br>👮 ${gendarmes} gendarmes · 📱 ${dispositivos} disp. · 🚁 ${drones} drones · 🔔 ${alertas} alertas`, 'info', 5000);
     } else {
       STATE.recintoActual = null;
       document.getElementById('btn-vista-nacional').style.display = 'none';

@@ -3,39 +3,626 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🔒 SISGEN - Sistema de Gestión de Seguridad Penitenciaria</title>
-  <meta http-equiv="refresh" content="0; url=frontend/index.html">
+  <title>🔒 SISGEN - Sistema de Gestión de Seguridad Penitenciaria | Gendarmería de Chile</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
   <style>
-    body { 
-      background: #0a0e1a; 
-      color: #fff; 
-      font-family: sans-serif; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      height: 100vh; 
-      margin: 0;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: #1a1f2e;
+      --bg-hover: #242b3d;
+      --text-primary: #e0e0e0;
+      --text-secondary: #9ca3af;
+      --border: #2a3040;
+      --accent: #00bcd4;
+      --success: #43a047;
+      --warning: #ffa726;
+      --danger: #e53935;
+      --info: #29b6f6;
     }
-    .loading { text-align: center; }
-    .loading h1 { font-size: 2em; margin-bottom: 10px; }
-    .loading p { color: #888; }
-    .spinner { 
-      width: 40px; height: 40px; 
-      border: 4px solid #1a237e; 
-      border-top-color: #00bcd4; 
-      border-radius: 50%; 
-      animation: spin 1s linear infinite; 
-      margin: 20px auto;
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* TOP BAR */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      height: 60px;
+      z-index: 1000;
+      position: relative;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { font-size: 28px; }
+    .logo-text h1 { font-size: 18px; color: #fff; letter-spacing: 1px; }
+    .logo-text .subtitle { font-size: 11px; color: var(--text-secondary); }
+    .header-stats { display: flex; gap: 15px; }
+    .stat-item { text-align: center; padding: 4px 12px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); }
+    .stat-item .stat-value { font-size: 18px; font-weight: bold; color: var(--accent); display: block; }
+    .stat-item .stat-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .connection-status { font-size: 12px; padding: 4px 10px; border-radius: 12px; }
+    .connection-status.connected { background: rgba(67,160,71,0.2); color: var(--success); }
+    .connection-status.connecting { background: rgba(255,167,38,0.2); color: var(--warning); }
+    .connection-status.disconnected { background: rgba(229,57,53,0.2); color: var(--danger); }
+    .btn-icon { background: var(--bg-card); border: 1px solid var(--border); color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    .btn-icon:hover { background: var(--bg-hover); }
+    /* MAIN */
+    .main-container { display: flex; height: calc(100vh - 60px); }
+    /* SIDEBARS */
+    .sidebar-left, .sidebar-right { width: 300px; min-width: 300px; background: var(--bg-secondary); display: flex; flex-direction: column; gap: 0; overflow-y: auto; }
+    .sidebar-left { border-right: 1px solid var(--border); }
+    .sidebar-right { border-left: 1px solid var(--border); }
+    .panel { border-bottom: 1px solid var(--border); }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-card); cursor: pointer; }
+    .panel-header h3 { font-size: 13px; color: #fff; }
+    .badge { background: var(--accent); color: #000; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 10px; }
+    .badge-danger { background: var(--danger); color: #fff; }
+    .badge-info { background: var(--info); color: #000; }
+    .panel-body { padding: 8px; max-height: 200px; overflow-y: auto; }
+    .panel-body::-webkit-scrollbar { width: 4px; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .loading { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px; }
+    /* LIST ITEMS */
+    .list-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+    .list-item:hover { background: var(--bg-hover); }
+    .list-item .avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid var(--border); }
+    .list-item .avatar.online { border-color: var(--success); }
+    .list-item .avatar.offline { border-color: var(--danger); }
+    .list-item .avatar.danger { border-color: var(--danger); }
+    .list-item .avatar.info { border-color: var(--info); }
+    .list-item .info { flex: 1; min-width: 0; }
+    .list-item .name { font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-item .detail { font-size: 10px; color: var(--text-secondary); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.online { background: var(--success); }
+    .status-dot.offline { background: var(--danger); }
+    .status-dot.warning { background: var(--warning); }
+    /* MAP */
+    .map-container { flex: 1; display: flex; flex-direction: column; position: relative; }
+    .map-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); gap: 10px; flex-wrap: wrap; }
+    .toolbar-left { display: flex; align-items: center; gap: 8px; }
+    .toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .form-select { background: var(--bg-card); color: #fff; border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; font-size: 12px; min-width: 180px; }
+    .form-select:focus { outline: none; border-color: var(--accent); }
+    .btn-back { background: var(--bg-card); border: 1px solid var(--border); color: #fff; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .btn-back:hover { background: var(--bg-hover); }
+    .vista-indicator { font-size: 12px; padding: 4px 10px; border-radius: 12px; }
+    .vista-indicator.nacional { background: rgba(0,188,212,0.15); color: var(--accent); }
+    .vista-indicator.recinto { background: rgba(255,167,38,0.15); color: var(--warning); }
+    .toggle-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); cursor: pointer; }
+    .toggle-label input[type="checkbox"] { accent-color: var(--accent); }
+    #map { flex: 1; }
+    /* ALERTAS */
+    .alerta-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; border-left: 3px solid var(--text-secondary); }
+    .alerta-item:hover { background: var(--bg-hover); }
+    .alerta-item.critica { border-left-color: var(--danger); }
+    .alerta-item.alta { border-left-color: var(--warning); }
+    .alerta-item.media { border-left-color: var(--info); }
+    .alerta-item.baja { border-left-color: var(--success); }
+    .alerta-icon { font-size: 18px; }
+    .alerta-content { flex: 1; min-width: 0; }
+    .alerta-titulo { font-size: 12px; color: #fff; }
+    .alerta-desc { font-size: 10px; color: var(--text-secondary); }
+    .alerta-time { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .stat-card { background: var(--bg-card); padding: 10px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+    .stat-card .stat-number { font-size: 22px; font-weight: bold; color: var(--accent); }
+    .stat-card .stat-desc { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+    .stat-card.stat-warning .stat-number { color: var(--warning); }
+    .stat-card.stat-danger .stat-number { color: var(--danger); }
+    .stat-card.stat-info .stat-number { color: var(--info); }
+    /* DRON CONTROL */
+    .dron-selector { margin-bottom: 8px; }
+    .dron-selector select { width: 100%; }
+    .dron-info { background: var(--bg-card); padding: 8px; border-radius: 6px; margin-bottom: 8px; }
+    .dron-info-row { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; }
+    .dron-info-row span:first-child { color: var(--text-secondary); }
+    .dron-info-row span:last-child { color: #fff; }
+    .dron-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .btn-dron { padding: 6px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 11px; background: var(--bg-card); color: #fff; transition: all 0.2s; }
+    .btn-dron:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--accent); }
+    .btn-dron:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* MODAL */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .modal.hidden { display: none; }
+    .modal-content { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .modal-header h3 { font-size: 16px; color: #fff; }
+    .btn-close { background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; }
+    .btn-close:hover { color: #fff; }
+    .modal-body { padding: 18px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
+    .btn-secondary { background: var(--bg-card); color: #fff; border: 1px solid var(--border); }
+    .btn-primary { background: var(--accent); color: #000; font-weight: bold; }
+    .btn-secondary:hover { background: var(--bg-hover); }
+    .btn-primary:hover { opacity: 0.9; }
+    /* TOAST */
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 10px 16px; border-radius: 8px; font-size: 13px; color: #fff; min-width: 250px; animation: slideIn 0.3s ease; border-left: 4px solid; }
+    .toast.critica { background: rgba(229,57,53,0.9); border-color: var(--danger); }
+    .toast.alta { background: rgba(255,167,38,0.9); border-color: var(--warning); }
+    .toast.media { background: rgba(41,182,246,0.9); border-color: var(--info); }
+    .toast.baja { background: rgba(67,160,71,0.9); border-color: var(--success); }
+    .toast.fade-out { animation: fadeOut 0.3s ease forwards; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    .marker-icon { background: transparent !important; border: none !important; }
+    /* RESPONSIVE */
+    @media (max-width: 1200px) { .sidebar-left, .sidebar-right { width: 250px; min-width: 250px; } }
+    @media (max-width: 900px) { .sidebar-left, .sidebar-right { width: 200px; min-width: 200px; } }
+    @media (max-width: 768px) {
+      .sidebar-left, .sidebar-right { display: none; }
+      .header-stats { gap: 6px; }
+      .stat-item { padding: 2px 8px; }
+      .stat-item .stat-value { font-size: 14px; }
+      .stat-item .stat-label { font-size: 8px; }
+      .toolbar-right { display: none; }
+    }
   </style>
 </head>
 <body>
-  <div class="loading">
-    <h1>🔒 SISGEN</h1>
-    <p>Cargando Sistema de Gestión de Seguridad Penitenciaria...</p>
-    <div class="spinner"></div>
-    <p><small>Redirigiendo al dashboard...</small></p>
+  <!-- Barra Superior -->
+  <header class="top-bar">
+    <div class="logo">
+      <span class="logo-icon">🇨🇱</span>
+      <div class="logo-text">
+        <h1>SISGEN</h1>
+        <span class="subtitle">Sistema de Gestión de Seguridad Penitenciaria · Gendarmería de Chile</span>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item" id="stat-recinto">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Recintos</span>
+      </div>
+      <div class="stat-item" id="stat-regiones">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Regiones</span>
+      </div>
+      <div class="stat-item" id="stat-capacidad">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Capacidad</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="connection-status connected">● Estático</span>
+      <button class="btn-icon" onclick="window.location.reload()" title="Recargar">🔄</button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <div class="main-container">
+    <!-- Panel Lateral Izquierdo -->
+    <aside class="sidebar-left">
+      <!-- Panel de Regiones -->
+      <div class="panel panel-regiones">
+        <div class="panel-header">
+          <h3>🗺️ Regiones</h3>
+          <span class="badge" id="regiones-count">0</span>
+        </div>
+        <div class="panel-body" id="regiones-list">
+          <div class="loading">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- Panel de Recintos por Región -->
+      <div class="panel panel-recintos">
+        <div class="panel-header">
+          <h3>🏛️ Recintos</h3>
+          <span class="badge" id="recintos-count">0</span>
+        </div>
+        <div class="panel-body" id="recintos-list">
+          <div class="loading">Cargando...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mapa Central -->
+    <main class="map-container">
+      <div class="map-toolbar">
+        <div class="toolbar-left">
+          <button id="btn-vista-nacional" class="btn-back" style="display:none;" title="Volver a vista nacional">
+            ← Volver
+          </button>
+          <select id="recinto-select" class="form-select">
+            <option value="">🇨🇱 Todos los recintos</option>
+          </select>
+          <span id="vista-indicator" class="vista-indicator nacional">🇨🇱 Vista Nacional - Todos los recintos</span>
+        </div>
+        <div class="toolbar-right">
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-regiones" checked>
+            <span>🗺️ Regiones</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-recintos" checked>
+            <span>🏛️ Recintos</span>
+          </label>
+        </div>
+      </div>
+      <div id="map"></div>
+    </main>
+
+    <!-- Panel Lateral Derecho -->
+    <aside class="sidebar-right">
+      <!-- Panel de Estadísticas -->
+      <div class="panel panel-stats">
+        <div class="panel-header">
+          <h3>📊 Estadísticas</h3>
+        </div>
+        <div class="panel-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-number" id="stat-total-recintos">0</div>
+              <div class="stat-desc">Total Recintos</div>
+            </div>
+            <div class="stat-card stat-warning">
+              <div class="stat-number" id="stat-total-regiones">0</div>
+              <div class="stat-desc">Regiones</div>
+            </div>
+            <div class="stat-card stat-info">
+              <div class="stat-number" id="stat-capacidad-total">0</div>
+              <div class="stat-desc">Capacidad Total</div>
+            </div>
+            <div class="stat-card stat-danger">
+              <div class="stat-number" id="stat-alta-seguridad">0</div>
+              <div class="stat-desc">Alta Seguridad</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Información del Recinto -->
+      <div class="panel panel-info">
+        <div class="panel-header">
+          <h3>🏛️ Información</h3>
+        </div>
+        <div class="panel-body" id="info-panel">
+          <div class="loading">Seleccione un recinto en el mapa</div>
+        </div>
+      </div>
+    </aside>
   </div>
+
+  <!-- Modal -->
+  <div id="info-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-titulo">Información</h3>
+        <button class="btn-close" onclick="cerrarModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notificación Toast -->
+  <div id="toast-container"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // ===== DATOS =====
+    let DATA = null;
+    let recintosPlano = [];
+    let map = null;
+    let markers = { recintos: {}, regiones: {} };
+    let layers = { recintos: null, regiones: null };
+    let vistaActual = 'nacional';
+    let recintoActivo = null;
+
+    // ===== CARGA DE DATOS =====
+    async function cargarDatos() {
+      try {
+        const res = await fetch('backend/data/carceles_chile.json');
+        DATA = await res.json();
+        
+        // Aplanar recintos
+        recintosPlano = [];
+        DATA.regiones.forEach(r => {
+          r.recintos.forEach(rec => {
+            recintosPlano.push({
+              ...rec,
+              region: r.nombre
+            });
+          });
+        });
+
+        actualizarUI();
+        initMap();
+        return true;
+      } catch (err) {
+        console.error('Error cargando datos:', err);
+        document.getElementById('regiones-list').innerHTML = 
+          '<div class="loading" style="color:var(--danger)">❌ Error al cargar datos</div>';
+        return false;
+      }
+    }
+
+    // ===== ACTUALIZAR UI =====
+    function actualizarUI() {
+      // Header stats
+      document.querySelector('#stat-recinto .stat-value').textContent = recintosPlano.length;
+      document.querySelector('#stat-regiones .stat-value').textContent = DATA.regiones.length;
+      const capTotal = recintosPlano.reduce((s, r) => s + (r.capacidad || 0), 0);
+      document.querySelector('#stat-capacidad .stat-value').textContent = capTotal.toLocaleString('es-CL');
+
+      // Stats cards
+      document.getElementById('stat-total-recintos').textContent = recintosPlano.length;
+      document.getElementById('stat-total-regiones').textContent = DATA.regiones.length;
+      document.getElementById('stat-capacidad-total').textContent = capTotal.toLocaleString('es-CL');
+      document.getElementById('stat-alta-seguridad').textContent = recintosPlano.filter(r => r.seguridad === 'alta').length;
+
+      // Regiones list
+      const regionesList = document.getElementById('regiones-list');
+      document.getElementById('regiones-count').textContent = DATA.regiones.length;
+      regionesList.innerHTML = DATA.regiones.map(r => `
+        <div class="list-item" onclick="enfocarRegion('${r.nombre}')">
+          <div class="avatar info">🗺️</div>
+          <div class="info">
+            <div class="name">${r.nombre}</div>
+            <div class="detail">${r.recintos.length} recintos</div>
+          </div>
+        </div>
+      `).join('');
+
+      // Recintos list
+      const recintosList = document.getElementById('recintos-list');
+      document.getElementById('recintos-count').textContent = recintosPlano.length;
+      recintosList.innerHTML = recintosPlano.map(r => {
+        const colorSeg = r.seguridad === 'alta' ? 'var(--danger)' : r.seguridad === 'media' ? 'var(--warning)' : 'var(--success)';
+        return `
+          <div class="list-item" onclick="enfocarRecinto('${r.nombre}')">
+            <div class="avatar" style="border-color:${colorSeg}">🏛️</div>
+            <div class="info">
+              <div class="name">${r.nombre}</div>
+              <div class="detail">${r.region} · ${r.capacidad} plazas</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Select
+      const select = document.getElementById('recinto-select');
+      recintosPlano.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.nombre;
+        opt.textContent = r.nombre;
+        select.appendChild(opt);
+      });
+    }
+
+    // ===== MAPA =====
+    function initMap() {
+      map = L.map('map', {
+        center: [-33.4489, -70.6693],
+        zoom: 5.5,
+        maxZoom: 18,
+        minZoom: 4,
+        zoomControl: true
+      });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      layers.regiones = L.layerGroup().addTo(map);
+      layers.recintos = L.layerGroup().addTo(map);
+
+      // Toggles
+      document.getElementById('toggle-regiones').addEventListener('change', (e) => {
+        if (e.target.checked) map.addLayer(layers.regiones);
+        else map.removeLayer(layers.regiones);
+      });
+      document.getElementById('toggle-recintos').addEventListener('change', (e) => {
+        if (e.target.checked) map.addLayer(layers.recintos);
+        else map.removeLayer(layers.recintos);
+      });
+
+      // Select
+      document.getElementById('recinto-select').addEventListener('change', (e) => {
+        if (e.target.value) enfocarRecinto(e.target.value);
+        else vistaNacional();
+      });
+
+      document.getElementById('btn-vista-nacional').addEventListener('click', () => {
+        document.getElementById('recinto-select').value = '';
+        vistaNacional();
+      });
+
+      dibujarTodo();
+    }
+
+    function dibujarTodo() {
+      dibujarRegiones();
+      dibujarRecintos();
+    }
+
+    function dibujarRegiones() {
+      layers.regiones.clearLayers();
+      markers.regiones = {};
+
+      DATA.regiones.forEach(region => {
+        const latMedia = region.recintos.reduce((s, r) => s + r.latitud, 0) / region.recintos.length;
+        const lngMedia = region.recintos.reduce((s, r) => s + r.longitud, 0) / region.recintos.length;
+        const capRegion = region.recintos.reduce((s, r) => s + (r.capacidad || 0), 0);
+
+        const icon = L.divIcon({
+          html: `<div style="
+            width: 36px; height: 36px;
+            background: rgba(41,182,246,0.3);
+            border: 2px solid var(--info);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+          ">🗺️</div>`,
+          className: 'marker-icon',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        });
+
+        const marker = L.marker([latMedia, lngMedia], { icon })
+          .addTo(layers.regiones)
+          .bindPopup(`
+            <div style="color:#000;font-family:sans-serif;min-width:200px;">
+              <strong>🗺️ ${region.nombre}</strong><br>
+              <span style="font-size:12px;color:#666;">${region.recintos.length} recintos · ${capRegion.toLocaleString('es-CL')} plazas</span>
+            </div>
+          `);
+
+        markers.regiones[region.nombre] = marker;
+      });
+    }
+
+    function dibujarRecintos() {
+      layers.recintos.clearLayers();
+      markers.recintos = {};
+
+      recintosPlano.forEach(r => {
+        const colorMap = { alta: '#e53935', media: '#ffa726', baja: '#43a047' };
+        const color = colorMap[r.seguridad] || '#ffa726';
+
+        const icon = L.divIcon({
+          html: `<div style="
+            width: 32px; height: 32px;
+            background: ${color};
+            border: 2px solid #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+          ">🏛️</div>`,
+          className: 'marker-icon',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const marker = L.marker([r.latitud, r.longitud], { icon })
+          .addTo(layers.recintos)
+          .bindPopup(`
+            <div style="color:#000;font-family:sans-serif;min-width:250px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="font-size:24px;">🏛️</span>
+                <div>
+                  <strong style="font-size:14px;">${r.nombre}</strong><br>
+                  <span style="font-size:11px;color:#666;">${r.direccion || ''}</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div style="background:#e3f2fd;padding:6px;border-radius:4px;text-align:center;">
+                  <div style="font-size:16px;font-weight:bold;color:#1565c0;">${r.capacidad || '-'}</div>
+                  <div style="font-size:10px;color:#666;">Capacidad</div>
+                </div>
+                <div style="background:#fff3e0;padding:6px;border-radius:4px;text-align:center;">
+                  <div style="font-size:16px;font-weight:bold;color:#e65100;text-transform:capitalize;">${r.seguridad}</div>
+                  <div style="font-size:10px;color:#666;">Seguridad</div>
+                </div>
+              </div>
+              <div style="margin-top:6px;font-size:11px;color:#666;">📍 ${r.region}</div>
+              <button onclick="enfocarRecinto('${r.nombre}');document.getElementById('recinto-select').value='${r.nombre}';" 
+                style="width:100%;margin-top:8px;padding:6px;background:#1a237e;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+                🔍 Ver detalle
+              </button>
+            </div>
+          `);
+
+        marker.on('click', () => {
+          document.getElementById('recinto-select').value = r.nombre;
+          enfocarRecinto(r.nombre);
+        });
+
+        markers.recintos[r.nombre] = marker;
+      });
+    }
+
+    // ===== NAVEGACIÓN =====
+    function vistaNacional() {
+      vistaActual = 'nacional';
+      recintoActivo = null;
+      map.setView([-33.4489, -70.6693], 5.5);
+      
+      document.getElementById('btn-vista-nacional').style.display = 'none';
+      document.getElementById('vista-indicator').textContent = '🇨🇱 Vista Nacional - Todos los recintos';
+      document.getElementById('vista-indicator').className = 'vista-indicator nacional';
+      
+      document.getElementById('info-panel').innerHTML = '<div class="loading">Seleccione un recinto en el mapa</div>';
+    }
+
+    function enfocarRegion(nombreRegion) {
+      const region = DATA.regiones.find(r => r.nombre === nombreRegion);
+      if (!region) return;
+
+      const latMedia = region.recintos.reduce((s, r) => s + r.latitud, 0) / region.recintos.length;
+      const lngMedia = region.recintos.reduce((s, r) => s + r.longitud, 0) / region.recintos.length;
+      
+      map.setView([latMedia, lngMedia], 8);
+      
+      document.getElementById('vista-indicator').textContent = `🗺️ ${nombreRegion}`;
+      document.getElementById('vista-indicator').className = 'vista-indicator recinto';
+      document.getElementById('btn-vista-nacional').style.display = 'inline-flex';
+    }
+
+    function enfocarRecinto(nombreRecinto) {
+      const recinto = recintosPlano.find(r => r.nombre === nombreRecinto);
+      if (!recinto) return;
+
+      vistaActual = 'recinto';
+      recintoActivo = recinto;
+
+      map.setView([recinto.latitud, recinto.longitud], 15);
+
+      document.getElementById('btn-vista-nacional').style.display='inline-flex';
+      document.getElementById('vista-indicator').textContent=`🏛️ ${recinto.nombre}`;
+      document.getElementById('vista-indicator').className='vista-indicator recinto';
+      const color = { alta:'var(--danger)', media:'var(--warning)', baja:'var(--success)' }[recinto.seguridad]||'var(--warning)';
+      document.getElementById('info-panel').innerHTML=`
+        <div style="text-align:center;margin-bottom:10px;"><span style="font-size:40px;">🏛️</span></div>
+        <div style="background:var(--bg-card);padding:10px;border-radius:8px;margin-bottom:8px;">
+          <div style="font-size:14px;font-weight:bold;color:#fff;margin-bottom:4px;">${recinto.nombre}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${recinto.direccion||''}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="background:var(--bg-card);padding:8px;border-radius:6px;text-align:center;">
+            <div style="font-size:18px;font-weight:bold;color:var(--info);">${recinto.capacidad||'-'}</div>
+            <div style="font-size:10px;color:var(--text-secondary);">Capacidad</div>
+          </div>
+          <div style="background:var(--bg-card);padding:8px;border-radius:6px;text-align:center;">
+            <div style="font-size:18px;font-weight:bold;color:${color};">${recinto.seguridad}</div>
+            <div style="font-size:10px;color:var(--text-secondary);">Seguridad</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-secondary);text-align:center;">📍 ${recinto.region}</div>
+      `;
+    }
+
+    function cerrarModal() { document.getElementById('info-modal').classList.add('hidden'); }
+    function mostrarToast(msg,sev) {
+      const c=document.getElementById('toast-container');
+      const t=document.createElement('div');
+      t.className=`toast ${sev||'media'}`;
+      t.innerHTML=msg;
+      c.appendChild(t);
+      setTimeout(()=>{t.classList.add('fade-out');setTimeout(()=>t.remove(),300);},4000);
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarDatos);
+  </script>
 </body>
 </html>

@@ -14,6 +14,13 @@ const layers = {
 
 // ========== INICIALIZAR MAPA ==========
 function initMap() {
+  console.log('🗺️ Inicializando mapa...');
+  const mapContainer = document.getElementById('map');
+  if (!mapContainer) {
+    console.error('❌ Contenedor #map no encontrado');
+    return;
+  }
+  
   map = L.map('map', {
     center: CONFIG.CENTRO_CHILE,
     zoom: CONFIG.ZOOM_NACIONAL,
@@ -60,16 +67,29 @@ function initMap() {
 
   // Forzar resize
   setTimeout(() => map.invalidateSize(), 500);
+  console.log('🗺️ Mapa inicializado correctamente');
 }
+
+// Inicializar el mapa automáticamente cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  // Inicializar el mapa de inmediato para que esté listo cuando se carguen los datos
+  setTimeout(() => {
+    if (!map) {
+      initMap();
+    }
+  }, 100);
+});
 
 // ========== ACTUALIZAR MAPA ==========
 function actualizarMapa() {
-  if (!map) initMap();
-  
-  // Esperar a que el mapa esté listo antes de continuar
+  // Inicializar el mapa si no existe
   if (!map) {
-    console.error('❌ El mapa no se pudo inicializar');
-    return;
+    initMap();
+    // Si después de initMap sigue sin existir, hay un error grave
+    if (!map) {
+      console.error('❌ El mapa no se pudo inicializar');
+      return;
+    }
   }
   
   limpiarCapas();
@@ -90,23 +110,15 @@ function actualizarMapa() {
       return;
     }
     
-    // 1. Iniciar animación de zoom al recinto
-    map.flyTo([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO, {
-      duration: 1.5,
-      easeLinearity: 0.25
-    });
+    // Mostrar marcadores del recinto INMEDIATAMENTE
+    if (mostrarZonas) mostrarZonasRecinto(r);
+    if (mostrarGendarmes) mostrarGendarmesRecinto(r);
+    if (mostrarDispositivos) mostrarDispositivosRecinto(r);
+    if (mostrarDrones) mostrarDronesRecinto(r);
+    if (mostrarAlertas) mostrarAlertasRecinto(r);
     
-    // 2. Agregar marcadores después de que termine la animación (1.5s + buffer)
-    // Usar setTimeout en lugar de evento moveend que puede fallar
-    if (window._flyToTimeout) clearTimeout(window._flyToTimeout);
-    window._flyToTimeout = setTimeout(() => {
-      if (mostrarZonas) mostrarZonasRecinto(r);
-      if (mostrarGendarmes) mostrarGendarmesRecinto(r);
-      if (mostrarDispositivos) mostrarDispositivosRecinto(r);
-      if (mostrarDrones) mostrarDronesRecinto(r);
-      if (mostrarAlertas) mostrarAlertasRecinto(r);
-      window._flyToTimeout = null;
-    }, 1600); // 1.5s de animación + 100ms buffer
+    // Navegar al recinto - usar setView primero para ir instantáneo, luego flyTo para animación
+    map.setView([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO);
     
   } else {
     // Vista nacional - mostrar todo primero
@@ -116,11 +128,8 @@ function actualizarMapa() {
     if (mostrarAlertas) mostrarAlertasNacional();
     if (mostrarZonas) mostrarRecintosNacional();
     
-    // Zoom out con animación
-    map.flyTo(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL, {
-      duration: 1.5,
-      easeLinearity: 0.25
-    });
+    // Zoom out
+    map.setView(CONFIG.CENTRO_CHILE, CONFIG.ZOOM_NACIONAL);
   }
 }
 

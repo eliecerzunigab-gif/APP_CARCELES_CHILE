@@ -2,6 +2,17 @@
 
 **SISGEN** es una plataforma integral de monitoreo y seguridad para recintos penitenciarios de **Gendarmería de Chile**, diseñada para mejorar la vigilancia mediante tecnología IoT, geolocalización en tiempo real y drones de vigilancia.
 
+## 🌐 Demo Online
+
+**URL:** [https://eliecerzunigab-gif.github.io/APP_CARCELES_CHILE/](https://eliecerzunigab-gif.github.io/APP_CARCELES_CHILE/)
+
+> ⚠️ **Importante:** Si la URL no carga, debes activar GitHub Pages manualmente:
+> 1. Ir a [Settings > Pages](https://github.com/eliecerzunigab-gif/APP_CARCELES_CHILE/settings/pages)
+> 2. En "Source" seleccionar **"Deploy from a branch"**
+> 3. Branch: **`gh-pages`** / Folder: **`/ (root)`**
+> 4. Click **"Save"**
+> 5. Esperar 1-2 minutos y recargar la URL
+
 ## 🚀 Características Principales
 
 ### 👮 Monitoreo de Gendarmes

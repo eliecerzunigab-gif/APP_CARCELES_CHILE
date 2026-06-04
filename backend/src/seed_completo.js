@@ -1,402 +1,391 @@
+// ============================================================
+// seed_completo.js - Poblar base de datos con datos completos
+// 66 recintos penitenciarios de Chile, gendarmes, zonas, drones
+// ============================================================
 const { v4: uuidv4 } = require('uuid');
 const { getDatabase } = require('./models/database');
 
-// ============================================================
-// GENERADOR DE DATOS COMPLETOS - TODAS LAS CÁRCELES DE CHILE
-// Basado en los recintos penitenciarios de Gendarmería de Chile
-// ============================================================
-
-function generarPoligono(lat, lng, delta = 0.002) {
-  return [[lat-delta, lng-delta], [lat-delta, lng+delta], [lat+delta, lng+delta], [lat+delta, lng-delta]];
-}
-
-function generarZonas(lat, lng, tipo, cantidad = 4) {
-  const zonas = [
-    {nombre:'Acceso Principal',tipo:'acceso',lat:lat+0.0005,lng:lng-0.0005,radio:12},
-    {nombre:'Administración',tipo:'administracion',lat:lat-0.0002,lng:lng+0.001,radio:10}
-  ];
-  if (cantidad >= 3) {
-    zonas.push({nombre:'Patio',tipo:'patio',lat:lat+0.0005,lng:lng+0.0005,radio:20});
-  }
-  if (cantidad >= 4) {
-    zonas.push({nombre:'Pabellón',tipo:'celda',lat:lat-0.0005,lng:lng-0.0005,radio:15});
-  }
-  if (cantidad >= 5) {
-    zonas.push({nombre:'Pabellón A',tipo:'celda',lat:lat-0.0008,lng:lng-0.0008,radio:18});
-    zonas.push({nombre:'Pabellón B',tipo:'celda',lat:lat-0.0008,lng:lng+0.0008,radio:18});
-  }
-  return zonas;
-}
-
-// ============================================================
-// DEFINICIÓN DE TODAS LAS CÁRCELES DE CHILE POR REGIÓN
-// ============================================================
-
-const REGIONES = [
-  {
-    nombre: 'Región de Arica y Parinacota',
-    recintos: [
-      {nombre:'CDP Arica',dir:'Av. Santa María 2345, Arica',lat:-18.478,lng:-70.321,cap:600,seg:'media',gen:3,zonas:5},
-    ]
-  },
-  {
-    nombre: 'Región de Tarapacá',
-    recintos: [
-      {nombre:'CDP Iquique',dir:'Av. Arturo Prat 1234, Iquique',lat:-20.214,lng:-70.152,cap:800,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Pozo Almonte',dir:'Av. Comercio 567, Pozo Almonte',lat:-20.256,lng:-69.786,cap:150,seg:'baja',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región de Antofagasta',
-    recintos: [
-      {nombre:'CDP Antofagasta',dir:'Av. Argentina 2345, Antofagasta',lat:-23.651,lng:-70.398,cap:900,seg:'media',gen:4,zonas:5},
-      {nombre:'CDP Calama',dir:'Av. Granaderos 1234, Calama',lat:-22.462,lng:-68.928,cap:500,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Tocopilla',dir:'Av. 21 de Mayo 789, Tocopilla',lat:-22.092,lng:-70.198,cap:200,seg:'baja',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región de Atacama',
-    recintos: [
-      {nombre:'CDP Copiapó',dir:'Av. Juan Martínez 1234, Copiapó',lat:-27.367,lng:-70.332,cap:500,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Vallenar',dir:'Av. Ramírez 789, Vallenar',lat:-28.575,lng:-70.759,cap:250,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Chañaral',dir:'Av. Merino Jarpa 456, Chañaral',lat:-26.345,lng:-70.620,cap:120,seg:'baja',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región de Coquimbo',
-    recintos: [
-      {nombre:'CDP La Serena',dir:'Av. Francisco de Aguirre 2345, La Serena',lat:-29.903,lng:-71.250,cap:600,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Coquimbo',dir:'Av. Costanera 1234, Coquimbo',lat:-29.953,lng:-71.343,cap:400,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Ovalle',dir:'Av. Libertad 789, Ovalle',lat:-30.598,lng:-71.200,cap:300,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Illapel',dir:'Av. Constitución 456, Illapel',lat:-31.633,lng:-71.170,cap:150,seg:'baja',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región de Valparaíso',
-    recintos: [
-      {nombre:'CDP Valparaíso',dir:'Av. Argentina 975, Cerro Cordillera, Valparaíso',lat:-33.047,lng:-71.617,cap:800,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP San Antonio',dir:'Av. Barros Luco 2101, San Antonio',lat:-33.593,lng:-71.613,cap:400,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Viña del Mar',dir:'Av. Libertad 1234, Viña del Mar',lat:-33.025,lng:-71.552,cap:350,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Los Andes',dir:'Av. Argentina 456, Los Andes',lat:-32.834,lng:-70.598,cap:200,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP San Felipe',dir:'Av. Yungay 789, San Felipe',lat:-32.750,lng:-70.725,cap:180,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Quillota',dir:'Av. Condell 567, Quillota',lat:-32.880,lng:-71.248,cap:250,seg:'media',gen:2,zonas:5},
-      {nombre:'CDP Quilpué',dir:'Av. Blanco Encalada 890, Quilpué',lat:-33.048,lng:-71.442,cap:200,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP La Ligua',dir:'Av. Prat 456, La Ligua',lat:-32.452,lng:-71.231,cap:120,seg:'baja',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región Metropolitana',
-    recintos: [
-      {nombre:'CDP Santiago Sur (Ex Penitenciaría de Santiago)',dir:'Av. Pedro Montt 1600, Santiago Centro',lat:-33.456,lng:-70.648,cap:5000,seg:'alta',gen:8,zonas:14},
-      {nombre:'CCP Colina I',dir:'Ruta 5 Norte, Km 25, Colina',lat:-33.202,lng:-70.675,cap:1500,seg:'alta',gen:4,zonas:7},
-      {nombre:'CCP Colina II',dir:'Ruta 5 Norte, Km 28, Colina',lat:-33.185,lng:-70.680,cap:1200,seg:'alta',gen:4,zonas:6},
-      {nombre:'CDP San Bernardo',dir:'Av. Colón 1234, San Bernardo',lat:-33.592,lng:-70.700,cap:600,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Puente Alto',dir:'Av. Concha y Toro 2345, Puente Alto',lat:-33.613,lng:-70.575,cap:500,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Talagante',dir:'Av. Balmaceda 890, Talagante',lat:-33.664,lng:-70.930,cap:300,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Melipilla',dir:'Av. Vicuña Mackenna 567, Melipilla',lat:-33.686,lng:-71.215,cap:250,seg:'media',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: "Región del Libertador General Bernardo O'Higgins",
-    recintos: [
-      {nombre:'CDP Rancagua',dir:'Av. Libertador O\'Higgins 1234, Rancagua',lat:-34.170,lng:-70.745,cap:700,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP San Fernando',dir:'Av. Manuel Rodríguez 789, San Fernando',lat:-34.585,lng:-70.988,cap:350,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Santa Cruz',dir:'Av. Errázuriz 456, Santa Cruz',lat:-34.638,lng:-71.365,cap:200,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Rengo',dir:'Av. Caupolicán 567, Rengo',lat:-34.410,lng:-70.860,cap:180,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Pichilemu',dir:'Av. Agustín Urrutia 234, Pichilemu',lat:-34.387,lng:-72.005,cap:100,seg:'baja',gen:2,zonas:3},
-    ]
-  },
-  {
-    nombre: 'Región del Maule',
-    recintos: [
-      {nombre:'CDP Talca',dir:'Av. 2 Sur 1234, Talca',lat:-35.427,lng:-71.655,cap:800,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Curicó',dir:'Av. Alessandri 789, Curicó',lat:-34.983,lng:-71.239,cap:500,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Linares',dir:'Av. Independencia 567, Linares',lat:-35.847,lng:-71.593,cap:400,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Constitución',dir:'Av. Costanera 345, Constitución',lat:-35.333,lng:-72.417,cap:150,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Cauquenes',dir:'Av. San Martín 456, Cauquenes',lat:-35.967,lng:-72.317,cap:200,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Parral',dir:'Av. Ignacio Carrera Pinto 234, Parral',lat:-36.140,lng:-71.830,cap:150,seg:'baja',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región de Ñuble',
-    recintos: [
-      {nombre:'CDP Chillán',dir:'Av. O\'Higgins 1234, Chillán',lat:-36.607,lng:-72.103,cap:600,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP San Carlos',dir:'Av. Libertad 567, San Carlos',lat:-36.425,lng:-71.958,cap:200,seg:'media',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región del Biobío',
-    recintos: [
-      {nombre:'CDP Concepción (El Manzano)',dir:'Camino a Penco s/n, Concepción',lat:-36.827,lng:-73.050,cap:1200,seg:'alta',gen:3,zonas:5},
-      {nombre:'CCP Biobío',dir:'Ruta 160, Km 12, San Pedro de la Paz',lat:-36.840,lng:-73.100,cap:800,seg:'alta',gen:3,zonas:5},
-      {nombre:'CDP Talcahuano',dir:'Av. Colón 1234, Talcahuano',lat:-36.724,lng:-73.117,cap:400,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Los Ángeles',dir:'Av. Alemania 789, Los Ángeles',lat:-37.470,lng:-72.350,cap:500,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Lebu',dir:'Av. Matta 456, Lebu',lat:-37.608,lng:-73.653,cap:120,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Arauco',dir:'Av. Caupolicán 234, Arauco',lat:-37.246,lng:-73.317,cap:150,seg:'baja',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región de La Araucanía',
-    recintos: [
-      {nombre:'CDP Temuco',dir:'Av. Alemania 567, Temuco',lat:-38.735,lng:-72.590,cap:700,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Angol',dir:'Av. O\'Higgins 890, Angol',lat:-37.800,lng:-72.710,cap:300,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Villarrica',dir:'Av. Pedro de Valdivia 456, Villarrica',lat:-39.280,lng:-72.227,cap:150,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Lautaro',dir:'Av. Manuel Rodríguez 234, Lautaro',lat:-38.530,lng:-72.435,cap:120,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Nueva Imperial',dir:'Av. Prat 345, Nueva Imperial',lat:-38.745,lng:-72.950,cap:100,seg:'baja',gen:2,zonas:3},
-    ]
-  },
-  {
-    nombre: 'Región de Los Ríos',
-    recintos: [
-      {nombre:'CDP Valdivia',dir:'Av. España 1234, Valdivia',lat:-39.814,lng:-73.246,cap:500,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP La Unión',dir:'Av. Ramírez 789, La Unión',lat:-40.293,lng:-73.082,cap:120,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Río Bueno',dir:'Av. Balmaceda 234, Río Bueno',lat:-40.335,lng:-72.955,cap:100,seg:'baja',gen:2,zonas:3},
-    ]
-  },
-  {
-    nombre: 'Región de Los Lagos',
-    recintos: [
-      {nombre:'CDP Puerto Montt',dir:'Av. Diego Portales 1234, Puerto Montt',lat:-41.472,lng:-72.939,cap:600,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Osorno',dir:'Av. Mackenna 789, Osorno',lat:-40.573,lng:-73.133,cap:500,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Castro',dir:'Av. Pedro Montt 456, Castro',lat:-42.482,lng:-73.764,cap:250,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Ancud',dir:'Av. Libertad 345, Ancud',lat:-41.869,lng:-73.820,cap:150,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Puerto Varas',dir:'Av. Gramado 234, Puerto Varas',lat:-41.318,lng:-72.985,cap:120,seg:'baja',gen:2,zonas:4},
-    ]
-  },
-  {
-    nombre: 'Región de Aysén del General Carlos Ibáñez del Campo',
-    recintos: [
-      {nombre:'CDP Coyhaique',dir:'Av. Ogana 1234, Coyhaique',lat:-45.571,lng:-72.068,cap:300,seg:'media',gen:2,zonas:4},
-      {nombre:'CDP Puerto Aysén',dir:'Av. Eusebio Lillo 456, Puerto Aysén',lat:-45.403,lng:-72.692,cap:120,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Chile Chico',dir:'Av. Bernardo O\'Higgins 234, Chile Chico',lat:-46.541,lng:-71.724,cap:80,seg:'baja',gen:1,zonas:3},
-    ]
-  },
-  {
-    nombre: 'Región de Magallanes y de la Antártica Chilena',
-    recintos: [
-      {nombre:'CDP Punta Arenas',dir:'Av. Colón 1234, Punta Arenas',lat:-53.163,lng:-70.911,cap:400,seg:'media',gen:3,zonas:5},
-      {nombre:'CDP Puerto Natales',dir:'Av. Pedro Montt 456, Puerto Natales',lat:-51.726,lng:-72.506,cap:120,seg:'baja',gen:2,zonas:4},
-      {nombre:'CDP Porvenir',dir:'Av. Croacia 234, Porvenir',lat:-53.296,lng:-70.366,cap:80,seg:'baja',gen:1,zonas:3},
-    ]
-  }
-];
-
-// ============================================================
-// NOMBRES Y APELLIDOS DE GENDARMES PARA GENERACIÓN
-// ============================================================
-const NOMBRES = ['Carlos','María','Pedro','Ana','José','Laura','Diego','Valentina','Felipe','Camila',
-  'Roberto','Daniela','Pablo','Carolina','Matías','Francisca','Cristián','Javiera','Andrés','Paula',
-  'Claudio','Marcela','Héctor','Rosa','Luis','Teresa','Jorge','Mónica','Ricardo','Patricia',
-  'Miguel','Alejandra','Álvaro','Verónica','César','Gabriela','Francisco','Soledad','Manuel','Carmen'];
-
-const APELLIDOS = ['Muñoz','González','Ramírez','López','Martínez','Torres','Flores','Rojas','Castro',
-  'Vargas','Soto','Pérez','Morales','Díaz','Contreras','Sepúlveda','Herrera','Medina','Fuentes','García',
-  'Rodríguez','Álvarez','Araya','Cortés','Espinoza','Fernández','Gutiérrez','Jara','Maldonado','Navarro',
-  'Olivares','Pizarro','Quintana','Reyes','Sandoval','Tapia','Ulloa','Valenzuela','Zúñiga','Aguilera'];
-
-const CARGOS = ['Gendarme','Cabo 2°','Cabo 1°','Sargento 2°','Sargento 1°','Suboficial','Suboficial Mayor'];
-
-function generarRut() {
-  const num = Math.floor(Math.random() * 25000000) + 5000000;
-  const dv = Math.floor(Math.random() * 10);
-  return `${Math.floor(num/1000).toLocaleString('es-CL')}.${String(num%1000).padStart(3,'0')}-${dv}`;
-}
-
-function generarGendarmes(cantidad, recintoId, zonas, zonasIds) {
-  const gendarmes = [];
-  const nombresUsados = new Set();
-  
-  for (let i = 0; i < cantidad; i++) {
-    let nombre, apellido, key;
-    do {
-      nombre = NOMBRES[Math.floor(Math.random() * NOMBRES.length)];
-      apellido = APELLIDOS[Math.floor(Math.random() * APELLIDOS.length)];
-      key = `${nombre}_${apellido}`;
-    } while (nombresUsados.has(key));
-    nombresUsados.add(key);
-    
-    const zona = zonas[i % zonas.length];
-    gendarmes.push({
-      nombre, apellido,
-      rut: generarRut(),
-      cargo: CARGOS[Math.floor(Math.random() * CARGOS.length)],
-      recinto: recintoId,
-      zona: zona.nombre,
-      zonaLat: zona.lat,
-      zonaLng: zona.lng,
-      zonaId: zonasIds[zona.nombre]
-    });
-  }
-  return gendarmes;
-}
-
-// ============================================================
-// FUNCIÓN PRINCIPAL DE SEED
-// ============================================================
-function seed() {
-  console.log('🌱 Sembrando datos completos de todas las cárceles de Chile...');
+function seedDatabase() {
+  console.log('🌱 Sembrando base de datos con datos completos...');
   const db = getDatabase();
 
   // Limpiar datos existentes
-  db.exec(`
-    DELETE FROM logs_eventos;
-    DELETE FROM rutas_dron;
-    DELETE FROM alertas;
-    DELETE FROM dispositivos_detectados;
-    DELETE FROM drones;
-    DELETE FROM gendarmes;
-    DELETE FROM zonas;
-    DELETE FROM recintos;
-  `);
+  db.exec('DELETE FROM logs_eventos');
+  db.exec('DELETE FROM rutas_dron');
+  db.exec('DELETE FROM alertas');
+  db.exec('DELETE FROM dispositivos_detectados');
+  db.exec('DELETE FROM drones');
+  db.exec('DELETE FROM gendarmes');
+  db.exec('DELETE FROM zonas');
+  db.exec('DELETE FROM recintos');
 
-  let totalRecintos = 0;
-  let totalZonas = 0;
-  let totalGendarmes = 0;
-  let totalDrones = 0;
-  let totalDispositivos = 0;
-  let totalAlertas = 0;
+  // ============================================================
+  // DATOS DE RECINTOS PENITENCIARIOS DE CHILE
+  // ============================================================
+  const recintosData = [
+    // Región de Arica y Parinacota
+    { nombre: "CDP Arica", direccion: "Av. Santa María 2345, Arica", latitud: -18.478, longitud: -70.321, region: "Región de Arica y Parinacota" },
+    
+    // Región de Tarapacá
+    { nombre: "CDP Iquique", direccion: "Av. Arturo Prat 1234, Iquique", latitud: -20.214, longitud: -70.152, region: "Región de Tarapacá" },
+    { nombre: "CDP Pozo Almonte", direccion: "Av. Comercio 567, Pozo Almonte", latitud: -20.256, longitud: -69.786, region: "Región de Tarapacá" },
+    
+    // Región de Antofagasta
+    { nombre: "CDP Antofagasta", direccion: "Av. Argentina 2345, Antofagasta", latitud: -23.651, longitud: -70.398, region: "Región de Antofagasta" },
+    { nombre: "CDP Calama", direccion: "Av. Granaderos 1234, Calama", latitud: -22.462, longitud: -68.928, region: "Región de Antofagasta" },
+    { nombre: "CDP Tocopilla", direccion: "Av. 21 de Mayo 789, Tocopilla", latitud: -22.092, longitud: -70.198, region: "Región de Antofagasta" },
+    
+    // Región de Atacama
+    { nombre: "CDP Copiapó", direccion: "Av. Juan Martínez 1234, Copiapó", latitud: -27.367, longitud: -70.332, region: "Región de Atacama" },
+    { nombre: "CDP Vallenar", direccion: "Av. Ramírez 789, Vallenar", latitud: -28.575, longitud: -70.759, region: "Región de Atacama" },
+    { nombre: "CDP Chañaral", direccion: "Av. Merino Jarpa 456, Chañaral", latitud: -26.345, longitud: -70.620, region: "Región de Atacama" },
+    
+    // Región de Coquimbo
+    { nombre: "CDP La Serena", direccion: "Av. Francisco de Aguirre 2345, La Serena", latitud: -29.903, longitud: -71.250, region: "Región de Coquimbo" },
+    { nombre: "CDP Coquimbo", direccion: "Av. Costanera 1234, Coquimbo", latitud: -29.953, longitud: -71.343, region: "Región de Coquimbo" },
+    { nombre: "CDP Ovalle", direccion: "Av. Libertad 789, Ovalle", latitud: -30.598, longitud: -71.200, region: "Región de Coquimbo" },
+    { nombre: "CDP Illapel", direccion: "Av. Constitución 456, Illapel", latitud: -31.633, longitud: -71.170, region: "Región de Coquimbo" },
+    
+    // Región de Valparaíso
+    { nombre: "CDP Valparaíso", direccion: "Av. Argentina 975, Cerro Cordillera, Valparaíso", latitud: -33.047, longitud: -71.617, region: "Región de Valparaíso" },
+    { nombre: "CDP San Antonio", direccion: "Av. Barros Luco 2101, San Antonio", latitud: -33.593, longitud: -71.613, region: "Región de Valparaíso" },
+    { nombre: "CDP Viña del Mar", direccion: "Av. Libertad 1234, Viña del Mar", latitud: -33.025, longitud: -71.552, region: "Región de Valparaíso" },
+    { nombre: "CDP Los Andes", direccion: "Av. Argentina 456, Los Andes", latitud: -32.834, longitud: -70.598, region: "Región de Valparaíso" },
+    { nombre: "CDP San Felipe", direccion: "Av. Yungay 789, San Felipe", latitud: -32.750, longitud: -70.725, region: "Región de Valparaíso" },
+    { nombre: "CDP Quillota", direccion: "Av. Condell 567, Quillota", latitud: -32.880, longitud: -71.248, region: "Región de Valparaíso" },
+    { nombre: "CDP Quilpué", direccion: "Av. Blanco Encalada 890, Quilpué", latitud: -33.048, longitud: -71.442, region: "Región de Valparaíso" },
+    { nombre: "CDP La Ligua", direccion: "Av. Prat 456, La Ligua", latitud: -32.452, longitud: -71.231, region: "Región de Valparaíso" },
+    
+    // Región Metropolitana
+    { nombre: "CDP Santiago Sur (Ex Penitenciaría de Santiago)", direccion: "Av. Pedro Montt 1600, Santiago Centro", latitud: -33.456, longitud: -70.648, region: "Región Metropolitana" },
+    { nombre: "CCP Colina I", direccion: "Ruta 5 Norte, Km 25, Colina", latitud: -33.202, longitud: -70.675, region: "Región Metropolitana" },
+    { nombre: "CCP Colina II", direccion: "Ruta 5 Norte, Km 28, Colina", latitud: -33.185, longitud: -70.680, region: "Región Metropolitana" },
+    { nombre: "CDP San Bernardo", direccion: "Av. Colón 1234, San Bernardo", latitud: -33.592, longitud: -70.700, region: "Región Metropolitana" },
+    { nombre: "CDP Puente Alto", direccion: "Av. Concha y Toro 2345, Puente Alto", latitud: -33.613, longitud: -70.575, region: "Región Metropolitana" },
+    { nombre: "CDP Talagante", direccion: "Av. Balmaceda 890, Talagante", latitud: -33.664, longitud: -70.930, region: "Región Metropolitana" },
+    { nombre: "CDP Melipilla", direccion: "Av. Vicuña Mackenna 567, Melipilla", latitud: -33.686, longitud: -71.215, region: "Región Metropolitana" },
+    
+    // Región del Libertador General Bernardo O'Higgins
+    { nombre: "CDP Rancagua", direccion: "Av. Libertador O'Higgins 1234, Rancagua", latitud: -34.170, longitud: -70.745, region: "Región del Libertador General Bernardo O'Higgins" },
+    { nombre: "CDP San Fernando", direccion: "Av. Manuel Rodríguez 789, San Fernando", latitud: -34.585, longitud: -70.988, region: "Región del Libertador General Bernardo O'Higgins" },
+    { nombre: "CDP Santa Cruz", direccion: "Av. Errázuriz 456, Santa Cruz", latitud: -34.638, longitud: -71.365, region: "Región del Libertador General Bernardo O'Higgins" },
+    { nombre: "CDP Rengo", direccion: "Av. Caupolicán 567, Rengo", latitud: -34.410, longitud: -70.860, region: "Región del Libertador General Bernardo O'Higgins" },
+    { nombre: "CDP Pichilemu", direccion: "Av. Agustín Urrutia 234, Pichilemu", latitud: -34.387, longitud: -72.005, region: "Región del Libertador General Bernardo O'Higgins" },
+    
+    // Región del Maule
+    { nombre: "CDP Talca", direccion: "Av. 2 Sur 1234, Talca", latitud: -35.427, longitud: -71.655, region: "Región del Maule" },
+    { nombre: "CDP Curicó", direccion: "Av. Alessandri 789, Curicó", latitud: -34.983, longitud: -71.239, region: "Región del Maule" },
+    { nombre: "CDP Linares", direccion: "Av. Independencia 567, Linares", latitud: -35.847, longitud: -71.593, region: "Región del Maule" },
+    { nombre: "CDP Constitución", direccion: "Av. Costanera 345, Constitución", latitud: -35.333, longitud: -72.417, region: "Región del Maule" },
+    { nombre: "CDP Cauquenes", direccion: "Av. San Martín 456, Cauquenes", latitud: -35.967, longitud: -72.317, region: "Región del Maule" },
+    { nombre: "CDP Parral", direccion: "Av. Ignacio Carrera Pinto 234, Parral", latitud: -36.140, longitud: -71.830, region: "Región del Maule" },
+    
+    // Región de Ñuble
+    { nombre: "CDP Chillán", direccion: "Av. O'Higgins 1234, Chillán", latitud: -36.607, longitud: -72.103, region: "Región de Ñuble" },
+    { nombre: "CDP San Carlos", direccion: "Av. Libertad 567, San Carlos", latitud: -36.425, longitud: -71.958, region: "Región de Ñuble" },
+    
+    // Región del Biobío
+    { nombre: "CDP Concepción (El Manzano)", direccion: "Camino a Penco s/n, Concepción", latitud: -36.827, longitud: -73.050, region: "Región del Biobío" },
+    { nombre: "CCP Biobío", direccion: "Ruta 160, Km 12, San Pedro de la Paz", latitud: -36.840, longitud: -73.100, region: "Región del Biobío" },
+    { nombre: "CDP Talcahuano", direccion: "Av. Colón 1234, Talcahuano", latitud: -36.724, longitud: -73.117, region: "Región del Biobío" },
+    { nombre: "CDP Los Ángeles", direccion: "Av. Alemania 789, Los Ángeles", latitud: -37.470, longitud: -72.350, region: "Región del Biobío" },
+    { nombre: "CDP Lebu", direccion: "Av. Matta 456, Lebu", latitud: -37.608, longitud: -73.653, region: "Región del Biobío" },
+    { nombre: "CDP Arauco", direccion: "Av. Caupolicán 234, Arauco", latitud: -37.246, longitud: -73.317, region: "Región del Biobío" },
+    
+    // Región de La Araucanía
+    { nombre: "CDP Temuco", direccion: "Av. Alemania 567, Temuco", latitud: -38.735, longitud: -72.590, region: "Región de La Araucanía" },
+    { nombre: "CDP Angol", direccion: "Av. O'Higgins 890, Angol", latitud: -37.800, longitud: -72.710, region: "Región de La Araucanía" },
+    { nombre: "CDP Villarrica", direccion: "Av. Pedro de Valdivia 456, Villarrica", latitud: -39.280, longitud: -72.227, region: "Región de La Araucanía" },
+    { nombre: "CDP Lautaro", direccion: "Av. Manuel Rodríguez 234, Lautaro", latitud: -38.530, longitud: -72.435, region: "Región de La Araucanía" },
+    { nombre: "CDP Nueva Imperial", direccion: "Av. Prat 345, Nueva Imperial", latitud: -38.745, longitud: -72.950, region: "Región de La Araucanía" },
+    
+    // Región de Los Ríos
+    { nombre: "CDP Valdivia", direccion: "Av. España 1234, Valdivia", latitud: -39.814, longitud: -73.246, region: "Región de Los Ríos" },
+    { nombre: "CDP La Unión", direccion: "Av. Ramírez 789, La Unión", latitud: -40.293, longitud: -73.082, region: "Región de Los Ríos" },
+    { nombre: "CDP Río Bueno", direccion: "Av. Balmaceda 234, Río Bueno", latitud: -40.335, longitud: -72.955, region: "Región de Los Ríos" },
+    
+    // Región de Los Lagos
+    { nombre: "CDP Puerto Montt", direccion: "Av. Diego Portales 1234, Puerto Montt", latitud: -41.472, longitud: -72.939, region: "Región de Los Lagos" },
+    { nombre: "CDP Osorno", direccion: "Av. Mackenna 789, Osorno", latitud: -40.573, longitud: -73.133, region: "Región de Los Lagos" },
+    { nombre: "CDP Castro", direccion: "Av. Pedro Montt 456, Castro", latitud: -42.482, longitud: -73.764, region: "Región de Los Lagos" },
+    { nombre: "CDP Ancud", direccion: "Av. Libertad 345, Ancud", latitud: -41.869, longitud: -73.820, region: "Región de Los Lagos" },
+    { nombre: "CDP Puerto Varas", direccion: "Av. Gramado 234, Puerto Varas", latitud: -41.318, longitud: -72.985, region: "Región de Los Lagos" },
+    
+    // Región de Aysén
+    { nombre: "CDP Coyhaique", direccion: "Av. Ogana 1234, Coyhaique", latitud: -45.571, longitud: -72.068, region: "Región de Aysén del General Carlos Ibáñez del Campo" },
+    { nombre: "CDP Puerto Aysén", direccion: "Av. Eusebio Lillo 456, Puerto Aysén", latitud: -45.403, longitud: -72.692, region: "Región de Aysén del General Carlos Ibáñez del Campo" },
+    { nombre: "CDP Chile Chico", direccion: "Av. Bernardo O'Higgins 234, Chile Chico", latitud: -46.541, longitud: -71.724, region: "Región de Aysén del General Carlos Ibáñez del Campo" },
+    
+    // Región de Magallanes
+    { nombre: "CDP Punta Arenas", direccion: "Av. Colón 1234, Punta Arenas", latitud: -53.163, longitud: -70.911, region: "Región de Magallanes y de la Antártica Chilena" },
+    { nombre: "CDP Puerto Natales", direccion: "Av. Pedro Montt 456, Puerto Natales", latitud: -51.726, longitud: -72.506, region: "Región de Magallanes y de la Antártica Chilena" },
+    { nombre: "CDP Porvenir", direccion: "Av. Croacia 234, Porvenir", latitud: -53.296, longitud: -70.366, region: "Región de Magallanes y de la Antártica Chilena" }
+  ];
 
+  // Insertar recintos
   const insertRecinto = db.prepare(`
-    INSERT INTO recintos (id, nombre, direccion, latitud, longitud, poligono)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO recintos (id, nombre, direccion, latitud, longitud)
+    VALUES (?, ?, ?, ?, ?)
   `);
+
+  const recintosInsertados = [];
+  for (const r of recintosData) {
+    const id = uuidv4();
+    insertRecinto.run(id, r.nombre, r.direccion, r.latitud, r.longitud);
+    recintosInsertados.push({ ...r, id });
+  }
+  console.log(`  ✅ ${recintosInsertados.length} recintos insertados`);
+
+  // ============================================================
+  // ZONAS para cada recinto
+  // ============================================================
+  const tiposZona = ['patio', 'celda', 'acceso', 'enfermeria', 'taller', 'visita', 'administracion', 'perimetro'];
+  const nombresZona = {
+    'patio': 'Patio Principal',
+    'celda': 'Módulo de Celdas',
+    'acceso': 'Control de Acceso',
+    'enfermeria': 'Enfermería',
+    'taller': 'Taller',
+    'visita': 'Sala de Visitas',
+    'administracion': 'Administración',
+    'perimetro': 'Perímetro Exterior'
+  };
+
   const insertZona = db.prepare(`
     INSERT INTO zonas (id, recinto_id, nombre, tipo, latitud, longitud, radio)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
+
+  let totalZonas = 0;
+  for (const recinto of recintosInsertados) {
+    // Crear 4-6 zonas por recinto
+    const numZonas = 4 + Math.floor(Math.random() * 3);
+    const zonasUsadas = new Set();
+    
+    for (let i = 0; i < numZonas; i++) {
+      const tipo = tiposZona[Math.floor(Math.random() * tiposZona.length)];
+      if (zonasUsadas.has(tipo)) continue;
+      zonasUsadas.add(tipo);
+      
+      const zonaId = uuidv4();
+      const offsetLat = (Math.random() - 0.5) * 0.002;
+      const offsetLng = (Math.random() - 0.5) * 0.002;
+      
+      insertZona.run(
+        zonaId,
+        recinto.id,
+        nombresZona[tipo] || tipo,
+        tipo,
+        recinto.latitud + offsetLat,
+        recinto.longitud + offsetLng,
+        10 + Math.floor(Math.random() * 20)
+      );
+      totalZonas++;
+    }
+  }
+  console.log(`  ✅ ${totalZonas} zonas insertadas`);
+
+  // ============================================================
+  // GENDARMES para cada recinto
+  // ============================================================
+  const nombres = [
+    'Carlos', 'María', 'José', 'Ana', 'Luis', 'Patricia', 'Jorge', 'Claudia',
+    'Miguel', 'Rosa', 'Andrés', 'Sandra', 'Francisco', 'Mónica', 'Ricardo',
+    'Verónica', 'Pablo', 'Carolina', 'Daniel', 'Marcela', 'Alejandro', 'Paula',
+    'Manuel', 'Andrea', 'Felipe', 'Gabriela', 'Juan', 'Elena', 'Pedro', 'Valentina'
+  ];
+  const apellidos = [
+    'González', 'Muñoz', 'Rojas', 'Díaz', 'Pérez', 'Soto', 'Contreras', 'Silva',
+    'Martínez', 'Sepúlveda', 'Morales', 'Rodríguez', 'López', 'Fuentes', 'Hernández',
+    'Torres', 'Araya', 'Flores', 'Espinoza', 'Valenzuela', 'Castillo', 'Ramírez',
+    'Reyes', 'Gutiérrez', 'Castro', 'Vargas', 'Álvarez', 'Cruz', 'Sandoval', 'Peña'
+  ];
+  const cargos = ['Gendarme', 'Cabo', 'Sargento', 'Suboficial', 'Oficial', 'Teniente', 'Capitán', 'Mayor'];
+
   const insertGendarme = db.prepare(`
-    INSERT INTO gendarmes (id, nombre, apellido, rut, cargo, recinto_id, 
-      ultima_ubicacion_lat, ultima_ubicacion_lng, ultima_zona_id, ultimo_heartbeat)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '-1 minutes'))
+    INSERT INTO gendarmes (id, nombre, apellido, rut, cargo, recinto_id, telefono, activo,
+      ultima_ubicacion_lat, ultima_ubicacion_lng, ultimo_heartbeat)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, datetime('now', ?))
   `);
+
+  let totalGendarmes = 0;
+  for (const recinto of recintosInsertados) {
+    // 5-15 gendarmes por recinto según capacidad
+    const numGendarmes = 5 + Math.floor(Math.random() * 11);
+    
+    for (let i = 0; i < numGendarmes; i++) {
+      const gendarmeId = uuidv4();
+      const nombre = nombres[Math.floor(Math.random() * nombres.length)];
+      const apellido = apellidos[Math.floor(Math.random() * apellidos.length)];
+      const rut = `${Math.floor(Math.random() * 25000000 + 5000000)}-${Math.floor(Math.random() * 9) + 1}`;
+      const cargo = cargos[Math.floor(Math.random() * cargos.length)];
+      const telefono = `+569${Math.floor(Math.random() * 100000000).toString().padStart(8, '0')}`;
+      
+      // Ubicación inicial cerca del recinto
+      const offsetLat = (Math.random() - 0.5) * 0.001;
+      const offsetLng = (Math.random() - 0.5) * 0.001;
+      
+      // Heartbeat aleatorio (entre -5 min y ahora)
+      const minutosAtras = Math.floor(Math.random() * 5);
+      
+      insertGendarme.run(
+        gendarmeId, nombre, apellido, rut, cargo, recinto.id, telefono,
+        recinto.latitud + offsetLat, recinto.longitud + offsetLng,
+        `-${minutosAtras} minutes`
+      );
+      totalGendarmes++;
+    }
+  }
+  console.log(`  ✅ ${totalGendarmes} gendarmes insertados`);
+
+  // ============================================================
+  // DRONES para recintos principales
+  // ============================================================
+  const modelosDron = ['DJI Mavic 3', 'DJI Phantom 4', 'Autel EVO II', 'Skydio 2+', 'Parrot Anafi'];
+  const nombresDron = ['Centinela-1', 'Centinela-2', 'Vigía-1', 'Vigía-2', 'Águila-1', 'Halcón-1', 'Lince-1', 'Zorro-1'];
+
   const insertDron = db.prepare(`
-    INSERT INTO drones (id, nombre, modelo, recinto_id, estado, bateria, altitud, 
-      latitud, longitud, modo_vuelo, camara_activa)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO drones (id, nombre, modelo, recinto_id, estado, bateria, altitud, velocidad,
+      latitud, longitud, modo_vuelo, camara_activa, ultimo_heartbeat)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
-  const insertRuta = db.prepare(`
-    INSERT INTO rutas_dron (id, dron_id, nombre, puntos)
-    VALUES (?, ?, ?, ?)
-  `);
+
+  let totalDrones = 0;
+  // Solo recintos grandes tienen drones
+  const recintosConDrones = recintosInsertados.filter((_, i) => 
+    i % 3 === 0 || recintosInsertados[i].nombre.includes('Santiago') || 
+    recintosInsertados[i].nombre.includes('Colina') || recintosInsertados[i].nombre.includes('Concepción')
+  );
+
+  for (const recinto of recintosConDrones) {
+    const numDrones = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < numDrones; i++) {
+      const dronId = uuidv4();
+      const nombre = nombresDron[Math.floor(Math.random() * nombresDron.length)] + '-' + recinto.nombre.split(' ').pop();
+      const modelo = modelosDron[Math.floor(Math.random() * modelosDron.length)];
+      const estados = ['en_base', 'en_base', 'en_base', 'en_vuelo', 'cargando'];
+      const estado = estados[Math.floor(Math.random() * estados.length)];
+      const bateria = estado === 'en_base' ? 80 + Math.floor(Math.random() * 20) : 40 + Math.floor(Math.random() * 40);
+      const altitud = estado === 'en_vuelo' ? 20 + Math.floor(Math.random() * 40) : 0;
+      const velocidad = estado === 'en_vuelo' ? 2 + Math.random() * 8 : 0;
+      const offsetLat = (Math.random() - 0.5) * 0.003;
+      const offsetLng = (Math.random() - 0.5) * 0.003;
+
+      insertDron.run(
+        dronId, nombre, modelo, recinto.id, estado, bateria, altitud, velocidad,
+        recinto.latitud + offsetLat, recinto.longitud + offsetLng,
+        estado === 'en_vuelo' ? 'patrulla' : 'manual',
+        estado === 'en_vuelo' ? 1 : 0
+      );
+      totalDrones++;
+    }
+  }
+  console.log(`  ✅ ${totalDrones} drones insertados`);
+
+  // ============================================================
+  // DISPOSITIVOS detectados (simulados)
+  // ============================================================
+  const fabricantes = ['Samsung', 'Xiaomi', 'Motorola', 'Huawei', 'Apple', 'LG', 'Honor', 'Realme'];
+  const modelos = ['Galaxy A54', 'Redmi Note 12', 'Moto G84', 'P60 Pro', 'iPhone 14', 'K62', 'Honor 90', 'Realme 11'];
+
   const insertDispositivo = db.prepare(`
     INSERT INTO dispositivos_detectados (id, imei, mac_address, fabricante, modelo,
       tipo_dispositivo, senial_db, frecuencia_mhz, recinto_id, zona_id, latitud, longitud,
-      es_autorizado, es_activo)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      es_autorizado, es_activo, primera_deteccion, ultima_deteccion)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now', ?), datetime('now'))
   `);
+
+  let totalDispositivos = 0;
+  for (const recinto of recintosInsertados) {
+    // 2-8 dispositivos por recinto
+    const numDispositivos = 2 + Math.floor(Math.random() * 7);
+    const zonasRecinto = db.prepare('SELECT id, latitud, longitud FROM zonas WHERE recinto_id = ?').all(recinto.id);
+    
+    for (let i = 0; i < numDispositivos; i++) {
+      const dispId = uuidv4();
+      const imei = `${Math.floor(Math.random() * 100)}${Array(13).fill(0).map(() => Math.floor(Math.random() * 10)).join('')}`;
+      const mac = Array(6).fill(0).map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join(':');
+      const fabricante = fabricantes[Math.floor(Math.random() * fabricantes.length)];
+      const modelo = modelos[Math.floor(Math.random() * modelos.length)];
+      const senial = Math.floor(Math.random() * 40) - 90;
+      const esAutorizado = Math.random() < 0.3 ? 1 : 0; // 30% autorizados
+      const zona = zonasRecinto.length > 0 ? zonasRecinto[Math.floor(Math.random() * zonasRecinto.length)] : null;
+      const minutosAtras = Math.floor(Math.random() * 60);
+
+      insertDispositivo.run(
+        dispId, imei, mac, fabricante, modelo, 'celular', senial,
+        1800 + Math.floor(Math.random() * 600), recinto.id,
+        zona ? zona.id : null,
+        zona ? zona.latitud + (Math.random() - 0.5) * 0.0005 : recinto.latitud + (Math.random() - 0.5) * 0.001,
+        zona ? zona.longitud + (Math.random() - 0.5) * 0.0005 : recinto.longitud + (Math.random() - 0.5) * 0.001,
+        esAutorizado, `-${minutosAtras} minutes`
+      );
+      totalDispositivos++;
+    }
+  }
+  console.log(`  ✅ ${totalDispositivos} dispositivos insertados`);
+
+  // ============================================================
+  // ALERTAS (algunas activas para demostración)
+  // ============================================================
+  const tiposAlerta = ['celular_no_autorizado', 'gendarme_inactivo', 'dron_bateria_baja', 'movimiento_sospechoso'];
+  const severidades = ['critica', 'alta', 'media', 'baja'];
+  const titulosAlerta = {
+    'celular_no_autorizado': '📱 Celular no autorizado detectado',
+    'gendarme_inactivo': '👮 Gendarme sin señal',
+    'dron_bateria_baja': '🔋 Batería baja del dron',
+    'movimiento_sospechoso': '👤 Movimiento sospechoso detectado'
+  };
+
   const insertAlerta = db.prepare(`
     INSERT INTO alertas (id, recinto_id, tipo, severidad, titulo, descripcion,
-      dispositivo_id, zona_id, latitud, longitud, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '-5 minutes'))
+      latitud, longitud, zona_id, dispositivo_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', ?))
   `);
 
-  // Procesar cada región y sus recintos
-  REGIONES.forEach(region => {
-    region.recintos.forEach(r => {
-      const recintoId = uuidv4();
-      const poligono = generarPoligono(r.lat, r.lng);
-      
-      insertRecinto.run(recintoId, r.nombre, r.dir, r.lat, r.lng, JSON.stringify(poligono));
-      totalRecintos++;
+  let totalAlertas = 0;
+  // Crear alertas en algunos recintos
+  for (const recinto of recintosInsertados.slice(0, Math.floor(recintosInsertados.length * 0.4))) {
+    const numAlertas = 1 + Math.floor(Math.random() * 3);
+    const zonasRecinto = db.prepare('SELECT id, latitud, longitud FROM zonas WHERE recinto_id = ?').all(recinto.id);
+    const dispositivosRecinto = db.prepare('SELECT id FROM dispositivos_detectados WHERE recinto_id = ? AND es_autorizado = 0').all(recinto.id);
 
-      // Generar zonas
-      const zonas = generarZonas(r.lat, r.lng, r.tipo, r.zonas);
-      const zonasIds = {};
-      
-      zonas.forEach(z => {
-        const id = uuidv4();
-        zonasIds[z.nombre] = id;
-        insertZona.run(id, recintoId, z.nombre, z.tipo, z.lat, z.lng, z.radio);
-        totalZonas++;
-      });
+    for (let i = 0; i < numAlertas; i++) {
+      const alertaId = uuidv4();
+      const tipo = tiposAlerta[Math.floor(Math.random() * tiposAlerta.length)];
+      const severidad = severidades[Math.floor(Math.random() * severidades.length)];
+      const zona = zonasRecinto.length > 0 ? zonasRecinto[Math.floor(Math.random() * zonasRecinto.length)] : null;
+      const dispositivo = tipo === 'celular_no_autorizado' && dispositivosRecinto.length > 0
+        ? dispositivosRecinto[Math.floor(Math.random() * dispositivosRecinto.length)]
+        : null;
+      const minutosAtras = Math.floor(Math.random() * 30);
 
-      // Generar gendarmes
-      const gendarmes = generarGendarmes(r.gen, recintoId, zonas, zonasIds);
-      gendarmes.forEach(g => {
-        const id = uuidv4();
-        insertGendarme.run(id, g.nombre, g.apellido, g.rut, g.cargo, g.recinto,
-          g.zonaLat + (Math.random() - 0.5) * 0.0005,
-          g.zonaLng + (Math.random() - 0.5) * 0.0005,
-          g.zonaId);
-        totalGendarmes++;
-      });
+      insertAlerta.run(
+        alertaId, recinto.id, tipo, severidad,
+        titulosAlerta[tipo] || 'Alerta de seguridad',
+        `Alerta generada automáticamente en ${recinto.nombre}`,
+        zona ? zona.latitud : recinto.latitud,
+        zona ? zona.longitud : recinto.longitud,
+        zona ? zona.id : null,
+        dispositivo ? dispositivo.id : null,
+        `-${minutosAtras} minutes`
+      );
+      totalAlertas++;
+    }
+  }
+  console.log(`  ✅ ${totalAlertas} alertas insertadas`);
 
-      // Generar drones (solo para recintos grandes)
-      const tieneDron = r.cap >= 500 || r.seg === 'alta';
-      if (tieneDron) {
-        const dronId = uuidv4();
-        const modelos = ['DJI Matrice 30T', 'DJI Mavic 3E', 'Autel EVO II'];
-        const modelo = modelos[Math.floor(Math.random() * modelos.length)];
-        
-        insertDron.run(dronId, `Cóndor-${totalDrones + 1}`, modelo, recintoId,
-          Math.random() > 0.5 ? 'en_vuelo' : 'en_base',
-          Math.floor(Math.random() * 40) + 60,
-          Math.floor(Math.random() * 30) + 30,
-          r.lat + (Math.random() - 0.5) * 0.003,
-          r.lng + (Math.random() - 0.5) * 0.003,
-          Math.random() > 0.5 ? 'patrulla' : 'manual',
-          Math.random() > 0.5 ? 1 : 0);
-        totalDrones++;
-
-        // Ruta de patrullaje
-        if (Math.random() > 0.5) {
-          const rutaId = uuidv4();
-          const delta = 0.002;
-          insertRuta.run(rutaId, dronId, `Patrulla Perimetral ${r.nombre}`,
-            JSON.stringify([
-              {lat: r.lat-delta, lng: r.lng-delta, alt: 45},
-              {lat: r.lat-delta, lng: r.lng+delta, alt: 45},
-              {lat: r.lat+delta, lng: r.lng+delta, alt: 45},
-              {lat: r.lat+delta, lng: r.lng-delta, alt: 45},
-              {lat: r.lat-delta, lng: r.lng-delta, alt: 45}
-            ]));
-        }
-      }
-
-      // Generar algunos dispositivos detectados (30% de probabilidad)
-      if (Math.random() < 0.3) {
-        const fabricantes = ['Samsung','Xiaomi','Motorola','Huawei','Apple','LG'];
-        const modelos = ['Galaxy A54','Redmi Note 12','Moto G84','P60 Pro','iPhone 14','K62'];
-        const zona = zonas[Math.floor(Math.random() * zonas.length)];
-        
-        const dispId = uuidv4();
-        const imei = '35' + Array(13).fill(0).map(() => Math.floor(Math.random() * 10)).join('');
-        const mac = Array(6).fill(0).map(() => 
-          Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join(':');
-        
-        insertDispositivo.run(dispId, imei, mac,
-          fabricantes[Math.floor(Math.random() * fabricantes.length)],
-          modelos[Math.floor(Math.random() * modelos.length)],
-          'celular',
-          Math.floor(Math.random() * 40) - 90,
-          1800 + Math.floor(Math.random() * 600),
-          recintoId, zonasIds[zona.nombre],
-          zona.lat + (Math.random() - 0.5) * 0.0005,
-          zona.lng + (Math.random() - 0.5) * 0.0005,
-          0, 1);
-        totalDispositivos++;
-
-        // Alerta para el dispositivo
-        if (Math.random() < 0.5) {
-          insertAlerta.run(uuidv4(), recintoId, 'celular_no_autorizado', 'critica',
-            `📱 Celular no autorizado en ${zona.nombre}`,
-            `${fabricantes[Math.floor(Math.random() * fabricantes.length)]} detectado en zona de internos`,
-            dispId, zonasIds[zona.nombre],
-            zona.lat, zona.lng);
-          totalAlertas++;
-        }
-      }
-    });
-  });
-
-  console.log('✅ Datos completos de todas las cárceles de Chile insertados correctamente');
-  console.log(`   📍 ${totalRecintos} recintos penitenciarios`);
-  console.log(`   🏘️ ${totalZonas} zonas`);
-  console.log(`   👮 ${totalGendarmes} gendarmes de Chile`);
-  console.log(`   🚁 ${totalDrones} drones de vigilancia`);
-  console.log(`   📱 ${totalDispositivos} dispositivos detectados`);
-  console.log(`   🔔 ${totalAlertas} alertas activas`);
-  console.log(`   📋 ${REGIONES.length} regiones de Chile cubiertas`);
+  console.log('✅ Base de datos sembrada completamente!');
+  console.log(`   📊 Resumen:`);
+  console.log(`   🏛️  ${recintosInsertados.length} recintos`);
+  console.log(`   📍 ${totalZonas} zonas`);
+  console.log(`   👮 ${totalGendarmes} gendarmes`);
+  console.log(`   🚁 ${totalDrones} drones`);
+  console.log(`   📱 ${totalDispositivos} dispositivos`);
+  console.log(`   🔔 ${totalAlertas} alertas`);
 }
 
-seed();
+// Ejecutar si se llama directamente
+seedDatabase();
+
+module.exports = { seedDatabase };

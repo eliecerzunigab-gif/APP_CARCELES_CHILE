@@ -65,6 +65,13 @@ function initMap() {
 // ========== ACTUALIZAR MAPA ==========
 function actualizarMapa() {
   if (!map) initMap();
+  
+  // Esperar a que el mapa esté listo antes de continuar
+  if (!map) {
+    console.error('❌ El mapa no se pudo inicializar');
+    return;
+  }
+  
   limpiarCapas();
   
   // Leer estado de toggles (por defecto true si no existen)
@@ -76,6 +83,12 @@ function actualizarMapa() {
 
   if (STATE.recintoActual) {
     const r = STATE.recintoActual;
+    
+    // Verificar que el recinto tenga coordenadas válidas
+    if (!r.latitud || !r.longitud) {
+      console.error('❌ Recinto sin coordenadas:', r);
+      return;
+    }
     
     // 1. Iniciar animación de zoom al recinto
     map.flyTo([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO, {

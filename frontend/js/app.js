@@ -221,6 +221,10 @@ function setupEventListeners() {
     const id = e.target.value;
     if (id) {
       STATE.recintoActual = STATE.recintos.find(r => r.id == id);
+      if (!STATE.recintoActual) {
+        console.error('Recinto no encontrado:', id);
+        return;
+      }
       document.getElementById('btn-vista-nacional').style.display = 'inline-block';
       document.getElementById('vista-indicator').textContent = `📍 ${STATE.recintoActual.nombre}`;
       document.getElementById('vista-indicator').className = 'vista-indicator recinto';
@@ -230,11 +234,21 @@ function setupEventListeners() {
       const drones = STATE.drones.filter(d => d.recinto_id == id).length;
       const alertas = STATE.alertas.filter(a => a.recinto_id == id && !a.resuelta).length;
       mostrarToast(`📍 <strong>${STATE.recintoActual.nombre}</strong><br>👮 ${gendarmes} gendarmes · 📱 ${dispositivos} disp. · 🚁 ${drones} drones · 🔔 ${alertas} alertas`, 'info', 5000);
+      // Actualizar paneles laterales con la info del recinto seleccionado
+      actualizarGendarmes();
+      actualizarDispositivos();
+      actualizarDrones();
+      actualizarAlertas();
     } else {
       STATE.recintoActual = null;
       document.getElementById('btn-vista-nacional').style.display = 'none';
       document.getElementById('vista-indicator').textContent = '🇨🇱 Vista Nacional';
       document.getElementById('vista-indicator').className = 'vista-indicator nacional';
+      // Volver a mostrar todos los datos en los paneles
+      actualizarGendarmes();
+      actualizarDispositivos();
+      actualizarDrones();
+      actualizarAlertas();
     }
     actualizarMapa();
   });

@@ -540,7 +540,7 @@ function cargarDatosSimulados() {
   console.log('✅ Datos simulados cargados');
 
   // ===== SIMULACIÓN DE GENDARMES (cada 4s) =====
-  // Movimiento con destino: cada gendarme se mueve hacia un punto dentro de su recinto
+  // Solo actualiza datos y paneles, NO el mapa (para no interrumpir interacción)
   setInterval(() => {
     STATE.gendarmes.forEach(g => {
       if (g.estado !== 'activo') return;
@@ -572,11 +572,10 @@ function cargarDatosSimulados() {
       g.bateria = Math.max(10, Math.min(100, g.bateria + (Math.random() - 0.5) * 2));
     });
     actualizarGendarmes();
-    actualizarMapa();
   }, 4000);
 
   // ===== SIMULACIÓN DE DRONES (cada 2.5s) =====
-  // Drones en patrulla vuelan en círculo alrededor del recinto
+  // Solo actualiza datos y paneles, NO el mapa
   setInterval(() => {
     STATE.drones.forEach(d => {
       if (d.estado === 'en_tierra') return;
@@ -612,12 +611,11 @@ function cargarDatosSimulados() {
       }
     });
     actualizarDrones();
-    actualizarMapa();
     actualizarControlDron();
   }, 2500);
 
   // ===== SIMULACIÓN DE DISPOSITIVOS (cada 8s) =====
-  // Dispositivos se mueven y cambian señal, algunos se detectan como nuevos
+  // Solo actualiza datos y paneles, NO el mapa
   setInterval(() => {
     STATE.dispositivos.forEach(d => {
       if (!d.activo) return;
@@ -630,7 +628,6 @@ function cargarDatosSimulados() {
       d.ultima_deteccion = new Date().toISOString();
     });
     actualizarDispositivos();
-    actualizarMapa();
   }, 8000);
 
   // ===== NUEVAS ALERTAS CADA 20-40s =====

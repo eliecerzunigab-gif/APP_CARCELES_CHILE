@@ -51,7 +51,8 @@ const CONFIG = {
   // Centro de Chile
   CENTRO_CHILE: [-33.4489, -70.6693],
   ZOOM_NACIONAL: 6,
-  ZOOM_RECINTO: 16,
+  ZOOM_RECINTO: 15,
+  ZOOM_AL_SELECCIONAR: 15,
 
   // Límites de Chile
   BOUNDS_CHILE: {

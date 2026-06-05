@@ -133,10 +133,15 @@ function actualizarMapa() {
     if (mostrarAlertas) mostrarAlertasRecinto(r);
     
     // Navegar al recinto con animación suave (flyTo en vez de setView)
-    map.flyTo([r.latitud, r.longitud], CONFIG.ZOOM_RECINTO, {
+    map.flyTo([r.latitud, r.longitud], CONFIG.ZOOM_AL_SELECCIONAR, {
       duration: 1.5,
       easeLinearity: 0.25
     });
+    
+    // Refrescar el mapa después de la animación para asegurar que los marcadores se rendericen
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 1600);
     
   } else {
     // Vista nacional - mostrar todo primero

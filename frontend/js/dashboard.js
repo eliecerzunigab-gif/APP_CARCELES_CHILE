@@ -9,10 +9,17 @@ function actualizarDashboard() {
 }
 
 function actualizarStatsCards() {
-  const activos = STATE.gendarmes.filter(g => g.estado === 'activo').length;
-  const inactivos = STATE.gendarmes.filter(g => g.estado !== 'activo').length;
-  const noAutorizados = STATE.dispositivos.filter(d => !d.autorizado).length;
-  const enVuelo = STATE.drones.filter(d => d.estado === 'en_vuelo' || d.estado === 'patrullando').length;
+  // Filtrar por recinto seleccionado si corresponde
+  const recintoId = STATE.recintoActual ? STATE.recintoActual.id : null;
+  
+  const gendarmes = recintoId ? STATE.gendarmes.filter(g => g.recinto_id == recintoId) : STATE.gendarmes;
+  const dispositivos = recintoId ? STATE.dispositivos.filter(d => d.recinto_id == recintoId) : STATE.dispositivos;
+  const drones = recintoId ? STATE.drones.filter(d => d.recinto_id == recintoId) : STATE.drones;
+  
+  const activos = gendarmes.filter(g => g.estado === 'activo').length;
+  const inactivos = gendarmes.filter(g => g.estado !== 'activo').length;
+  const noAutorizados = dispositivos.filter(d => !d.autorizado).length;
+  const enVuelo = drones.filter(d => d.estado === 'en_vuelo' || d.estado === 'patrullando').length;
 
   document.getElementById('stat-gendarmes-activos').textContent = activos;
   document.getElementById('stat-gendarmes-inactivos').textContent = inactivos;
@@ -25,9 +32,13 @@ function actualizarGraficoAlertas() {
   const canvas = document.getElementById('alertasChart');
   if (!canvas) return;
 
+  // Filtrar por recinto seleccionado si corresponde
+  const recintoId = STATE.recintoActual ? STATE.recintoActual.id : null;
+  const alertas = recintoId ? STATE.alertas.filter(a => a.recinto_id == recintoId) : STATE.alertas;
+
   // Contar alertas por tipo
   const tipos = {};
-  STATE.alertas.forEach(a => {
+  alertas.forEach(a => {
     const tipo = a.tipo || 'General';
     tipos[tipo] = (tipos[tipo] || 0) + 1;
   });

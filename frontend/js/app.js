@@ -187,11 +187,19 @@ function actualizarTodo() {
 }
 
 function actualizarHeaderStats() {
-  document.getElementById('stat-recinto').querySelector('.stat-value').textContent = STATE.recintos.length;
-  document.getElementById('stat-gendarmes').querySelector('.stat-value').textContent = STATE.gendarmes.length;
-  document.getElementById('stat-dispositivos').querySelector('.stat-value').textContent = STATE.dispositivos.length;
-  document.getElementById('stat-alertas').querySelector('.stat-value').textContent = STATE.alertas.filter(a => !a.resuelta).length;
-  document.getElementById('stat-drones').querySelector('.stat-value').textContent = STATE.drones.length;
+  // Filtrar por recinto seleccionado si corresponde
+  const recintoId = STATE.recintoActual ? STATE.recintoActual.id : null;
+  
+  const gendarmes = recintoId ? STATE.gendarmes.filter(g => g.recinto_id == recintoId) : STATE.gendarmes;
+  const dispositivos = recintoId ? STATE.dispositivos.filter(d => d.recinto_id == recintoId) : STATE.dispositivos;
+  const drones = recintoId ? STATE.drones.filter(d => d.recinto_id == recintoId) : STATE.drones;
+  const alertas = recintoId ? STATE.alertas.filter(a => a.recinto_id == recintoId) : STATE.alertas;
+  
+  document.getElementById('stat-recinto').querySelector('.stat-value').textContent = recintoId ? 1 : STATE.recintos.length;
+  document.getElementById('stat-gendarmes').querySelector('.stat-value').textContent = gendarmes.length;
+  document.getElementById('stat-dispositivos').querySelector('.stat-value').textContent = dispositivos.length;
+  document.getElementById('stat-alertas').querySelector('.stat-value').textContent = alertas.filter(a => !a.resuelta).length;
+  document.getElementById('stat-drones').querySelector('.stat-value').textContent = drones.length;
 }
 
 function llenarSelectDrones() {
@@ -248,6 +256,8 @@ function setupEventListeners() {
       actualizarDispositivos();
       actualizarDrones();
       actualizarAlertas();
+      actualizarHeaderStats();
+      actualizarDashboard();
     } else {
       STATE.recintoActual = null;
       document.getElementById('btn-vista-nacional').style.display = 'none';
@@ -258,6 +268,8 @@ function setupEventListeners() {
       actualizarDispositivos();
       actualizarDrones();
       actualizarAlertas();
+      actualizarHeaderStats();
+      actualizarDashboard();
     }
     actualizarMapa();
   });

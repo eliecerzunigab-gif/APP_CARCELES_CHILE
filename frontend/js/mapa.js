@@ -278,6 +278,9 @@ function mostrarDronesRecinto(recinto) {
     const marker = L.marker([d.latitud, d.longitud], { icon });
     marker.bindPopup(crearPopupDron(d));
     layers.drones.addLayer(marker);
+    
+    // Guardar referencia al marcador para moverlo en simulación
+    d._marker = marker;
 
     // Mostrar cono de visión si está en vuelo
     if (d.estado === 'en_vuelo' || d.estado === 'patrullando') {
@@ -290,6 +293,8 @@ function mostrarDronesRecinto(recinto) {
         dashArray: '5,5'
       });
       layers.drones.addLayer(cono);
+      // Guardar referencia al cono para moverlo junto con el dron
+      d._cono = cono;
     }
   });
 }
@@ -300,6 +305,8 @@ function mostrarDronesNacional() {
     const marker = L.marker([d.latitud, d.longitud], { icon });
     marker.bindPopup(crearPopupDron(d));
     markerCluster.addLayer(marker);
+    // Guardar referencia al marcador para moverlo en simulación
+    d._marker = marker;
   });
 }
 

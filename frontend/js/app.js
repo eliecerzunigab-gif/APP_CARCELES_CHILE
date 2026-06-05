@@ -575,13 +575,19 @@ function cargarDatosSimulados() {
   }, 4000);
 
   // ===== SIMULACIÓN DE DRONES (cada 2.5s) =====
-  // Solo actualiza datos y paneles, NO el mapa
+  // Mueve los drones en el mapa con setLatLng (sin reconstruir)
   setInterval(() => {
     STATE.drones.forEach(d => {
       if (d.estado === 'en_tierra') return;
       
       const recinto = STATE.recintos.find(r => r.id == d.recinto_id);
       if (!recinto) return;
+      
+      // Los drones en 'en_vuelo' pasan automáticamente a patrullar
+      if (d.estado === 'en_vuelo') {
+        d.estado = 'patrullando';
+        d._patrulla_angulo = Math.random() * Math.PI * 2;
+      }
       
       if (d.estado === 'patrullando') {
         // Vuelo circular alrededor del recinto
@@ -591,12 +597,6 @@ function cargarDatosSimulados() {
         d.longitud = recinto.longitud + Math.cos(d._patrulla_angulo) * radio;
         d.altitud = 25 + Math.sin(d._patrulla_angulo * 2) * 10;
         d.velocidad = 6 + Math.sin(d._patrulla_angulo * 3) * 2;
-      } else if (d.estado === 'en_vuelo') {
-        // Vuelo libre - movimiento aleatorio suave
-        d.latitud += (Math.random() - 0.5) * 0.0008;
-        d.longitud += (Math.random() - 0.5) * 0.0008;
-        d.altitud = Math.max(5, d.altitud + (Math.random() - 0.5) * 5);
-        d.velocidad = 4 + Math.random() * 4;
       }
       
       // Consumo de batería
@@ -608,6 +608,15 @@ function cargarDatosSimulados() {
         d.altitud = 0;
         d.velocidad = 0;
         mostrarToast(`🪫 ${d.nombre} aterrizó por batería baja`, 'warning');
+      }
+      
+      // Mover el marcador del dron en el mapa si existe
+      if (d._marker && map) {
+        d._marker.setLatLng([d.latitud, d.longitud]);
+      }
+      // Mover el cono de visión junto con el dron
+      if (d._cono && map) {
+        d._cono.setLatLng([d.latitud, d.longitud]);
       }
     });
     actualizarDrones();
@@ -689,10 +698,8 @@ function cargarDatosSimulados() {
   setTimeout(generarNuevaAlerta, 10000);
   setInterval(generarNuevaAlerta, 20000 + Math.random() * 20000);
 
-  // ===== ACTUALIZAR SELECT DE DRONES CADA 5s =====
-  setInterval(() => {
-    llenarSelectDrones();
-  }, 5000);
+  // NOTA: El select de drones NO se actualiza automáticamente para no interrumpir la selección del usuario.
+  // Solo se actualiza cuando se lanza un dron nuevo (ver lanzarDronEmergencia).
 }
 
 // ========== EXPORTAR FUNCIONES GLOBALES ==========

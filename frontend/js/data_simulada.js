@@ -84,7 +84,7 @@ function generarRecintos() {
     { id:21,nombre:"CP Calama",region:"Región de Antofagasta",latitud:-22.4623,longitud:-68.9274,tipo:"Centro Cumplimiento Penitenciario",capacidad:500,nivel_seguridad:"media" },
     { id:22,nombre:"CP San Felipe",region:"Región de Valparaíso",latitud:-32.7502,longitud:-70.7261,tipo:"Centro Detención Preventiva",capacidad:400,nivel_seguridad:"baja" },
     { id:23,nombre:"CP Quillota",region:"Región de Valparaíso",latitud:-32.8801,longitud:-71.2483,tipo:"Centro Cumplimiento Penitenciario",capacidad:500,nivel_seguridad:"media" },
-    { id:24,nombre:"CP San Antonio",region:"Región de Valparaíso",latitud:-33.5932,longitud:-71.6141,tipo:"Centro Detención Preventiva",capacidad:350,nivel_seguridad:"baja" },
+    { id:24,nombre:"CDP San Antonio",region:"Región de Valparaíso",latitud:-33.5817,longitud:-71.6137,tipo:"Centro Detención Preventiva",capacidad:350,nivel_seguridad:"baja" },
     { id:25,nombre:"CP Melipilla",region:"Región Metropolitana",latitud:-33.6851,longitud:-71.2152,tipo:"Centro Cumplimiento Penitenciario",capacidad:400,nivel_seguridad:"media" },
     { id:26,nombre:"CP Talagante",region:"Región Metropolitana",latitud:-33.6643,longitud:-70.9314,tipo:"Centro Detención Preventiva",capacidad:300,nivel_seguridad:"baja" },
     { id:27,nombre:"CP Puente Alto",region:"Región Metropolitana",latitud:-33.6132,longitud:-70.5751,tipo:"Centro Cumplimiento Penitenciario",capacidad:600,nivel_seguridad:"media" },
@@ -126,7 +126,8 @@ function generarRecintos() {
     { id:63,nombre:"CP Río Bueno",region:"Región de Los Ríos",latitud:-40.3352,longitud:-72.9561,tipo:"Centro Detención Preventiva",capacidad:100,nivel_seguridad:"baja" },
     { id:64,nombre:"CP Ancud",region:"Región de Los Lagos",latitud:-41.8693,longitud:-73.8282,tipo:"Centro Detención Preventiva",capacidad:150,nivel_seguridad:"baja" },
     { id:65,nombre:"CP Quellón",region:"Región de Los Lagos",latitud:-43.1181,longitud:-73.6173,tipo:"Centro Detención Preventiva",capacidad:100,nivel_seguridad:"baja" },
-    { id:66,nombre:"CP Chile Chico",region:"Región de Aysén",latitud:-46.5412,longitud:-71.7241,tipo:"Centro Detención Preventiva",capacidad:50,nivel_seguridad:"baja" }
+    { id:66,nombre:"CP Chile Chico",region:"Región de Aysén",latitud:-46.5412,longitud:-71.7241,tipo:"Centro Detención Preventiva",capacidad:50,nivel_seguridad:"baja" },
+    { id:67,nombre:"CP Arica (Acha)",region:"Región de Arica y Parinacota",latitud:-18.5167,longitud:-70.2833,tipo:"Complejo Penitenciario",capacidad:1200,nivel_seguridad:"alta" }
   ].map(r => ({ ...r, activo: true, poblacion_actual: Math.floor(r.capacidad * (0.7 + Math.random() * 0.3)) }));
 }
 
